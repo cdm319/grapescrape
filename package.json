@@ -1,0 +1,24 @@
+{
+  "name": "grapescrape",
+  "version": "1.0.0",
+  "description": "Scrape and alert to new wine additions at selected retailers",
+  "homepage": "https://github.com/cdm319/grapescrape#readme",
+  "bugs": {
+    "url": "https://github.com/cdm319/grapescrape/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cdm319/grapescrape.git"
+  },
+  "license": "UNLICENSED",
+  "author": "Chris Matthews <chris@matthews.digital>",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "node-fetch": "^3.3.2"
+  }
+}
