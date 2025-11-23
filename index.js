@@ -19,9 +19,13 @@ const scrape = async (url) => {
 
     $('.product-tile__description').each((_, element) => {
         const wine = $(element);
-        const name = wine.find('h2.product-tile__name').text().trim();
-        const priceSpan = wine.find('span.product-pricing__price').first();
-        let price = priceSpan
+
+        const name = wine.find('h2.product-tile__name')
+            .text()
+            .trim();
+
+        const price = wine.find('span.product-pricing__price')
+            .first()
             .text()
             .replace(/^\s*Price:\s*/i, '')
             .trim();
