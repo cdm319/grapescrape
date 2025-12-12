@@ -13,9 +13,10 @@ const BASE_URL = 'https://www.thewinesociety.com/CustomFileDownload/DownloadCsv'
 const DEFAULT_UNITS = '14156,14157,147166'; // bottles and half-bottles
 const DEFAULT_PRODUCT_TYPE = '17045'; // red wine
 const DEFAULT_MIN_PRICE = 15.0;
-const DEFAULT_STOCK_STATUS = '0,2' // in stock, low stock
+const DEFAULT_STOCK_STATUS = '0,2'; // in stock, low stock
 
 const stripFirstLine = text => text.slice(text.indexOf('\n') + 1);
+const normaliseHeader = header => header.trim().toLowerCase().replace(/\s+/g, '_');
 const normaliseName = text => text.replace(/[\s,]*\b(19|20)\d{2}\s*$/, '');
 const normaliseCurrency = text => {
     if (!text) return null;
@@ -24,17 +25,19 @@ const normaliseCurrency = text => {
 }
 
 const buildURL = (region, vintageFrom, vintageTo, grape = '', subregion = '') => {
-    const contentId = REGION_CONTENT_IDS[region];
+    const contentId = REGION_CONTENT_IDS[region.toLowerCase().trim()];
+
+    if (!contentId) throw new Error(`Invalid region: ${region}`);
 
     const params = encodeURIComponent(JSON.stringify({
-        'Unit': DEFAULT_UNITS,
-        'VintageFrom': vintageFrom,
-        'VintageTo': vintageTo,
-        'Grape': grape,
-        'Region': subregion,
-        'ProductType': DEFAULT_PRODUCT_TYPE,
-        'PriceMinimum': DEFAULT_MIN_PRICE,
-        'Status': DEFAULT_STOCK_STATUS
+        Unit: DEFAULT_UNITS,
+        VintageFrom: vintageFrom,
+        VintageTo: vintageTo,
+        Grape: grape,
+        Region: subregion,
+        ProductType: DEFAULT_PRODUCT_TYPE,
+        PriceMinimum: DEFAULT_MIN_PRICE,
+        Status: DEFAULT_STOCK_STATUS
     }));
 
     return `${BASE_URL}?contentId=${contentId}&parameters=${params}`;
@@ -51,7 +54,7 @@ const fetchCsv = async (url) => {
     const cleanedCsv = stripFirstLine(csv);
 
     const records = parse(cleanedCsv, {
-        columns: header => header.map(column => column.trim().toLowerCase().replace(/\s+/g, '_')),
+        columns: headers => headers.map(normaliseHeader),
         skip_empty_lines: true,
         trim: true
     });
