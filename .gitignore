@@ -144,3 +144,5 @@ vite.config.ts.timestamp-*
 testStore.json
 localStore.json
 lambda.zip
+cdk.out/
+asset-output/

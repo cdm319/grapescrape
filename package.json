@@ -15,11 +15,20 @@
   "type": "module",
   "scripts": {
     "local": "node src/app/local.js",
-    "local:test": "node src/app/test.js"
+    "local:test": "node src/app/test.js",
+    "cdk": "cdk --app 'node infra/bin/grapescrape.js'",
+    "cdk:synth": "cdk synth --app 'node infra/bin/grapescrape.js'",
+    "cdk:diff": "cdk diff --app 'node infra/bin/grapescrape.js'",
+    "cdk:deploy": "cdk deploy --app 'node infra/bin/grapescrape.js'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
     "@aws-sdk/client-sns": "^3.1053.0",
+    "aws-cdk-lib": "^2.257.0",
+    "constructs": "^10.6.0",
     "csv-parse": "^6.1.0"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.1124.1"
   }
 }
