@@ -13,12 +13,12 @@
   "license": "UNLICENSED",
   "author": "Chris Matthews <chris@matthews.digital>",
   "type": "module",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
+    "local": "node src/local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "csv-parse": "^6.1.0",
-    "node-fetch": "^3.3.2"
+    "csv-parse": "^6.1.0"
   }
 }
