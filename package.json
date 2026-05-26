@@ -15,7 +15,7 @@
   "type": "module",
   "scripts": {
     "local": "node src/app/local.js",
-    "local:test": "node src/app/test.js",
+    "local:test": "node src/app/test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
