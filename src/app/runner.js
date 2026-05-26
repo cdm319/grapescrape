@@ -1,7 +1,7 @@
 import { getCurrentWines } from "../service/wineService.js";
 import { diffWines } from "../utils.js";
 
-export const run = async ({ store, notifier, mode = 'local', getWines = getCurrentWines }) => {
+export const run = async ({ store, notifier, getWines = getCurrentWines }) => {
     const current = await getWines();
 
     if (current.length === 0) {

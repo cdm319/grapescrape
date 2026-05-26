@@ -5,8 +5,7 @@ import { consoleNotifier } from "../notify/consoleNotifier.js";
 try {
     await run({
         store: createLocalStore(),
-        notifier: consoleNotifier,
-        mode: 'local'
+        notifier: consoleNotifier
     });
 } catch (error) {
     console.error(error.message);

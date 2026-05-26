@@ -1,6 +1,6 @@
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
-const sns = new SNSCLient({});
+const sns = new SNSClient({});
 
 const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
 

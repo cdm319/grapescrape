@@ -11,7 +11,6 @@ try {
     await run({
         store: createLocalStore('testStore.json'),
         notifier: consoleNotifier,
-        mode: 'local',
         getWines: async () => stubWines
     });
 } catch (error) {
