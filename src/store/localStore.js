@@ -1,8 +1,6 @@
 import { promises as fs } from 'node:fs';
 
-const STORE_PATH = './localStore.json';
-
-export const createLocalStore = ( path = STORE_PATH ) => ({
+export const createLocalStore = ( path = './localStore.json' ) => ({
     async load() {
         try {
             const data = await fs.readFile(path, 'utf8');
