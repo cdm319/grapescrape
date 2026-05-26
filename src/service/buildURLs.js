@@ -1,4 +1,4 @@
-import { BASE_URL, DEFAULT_UNITS, DEFAULT_PRODUCT_TYPE, DEFAULT_MIN_PRICE, DEFAULT_STOCK_STATUS, REGION_CONTENT_IDS } from './config.js';
+import { BASE_URL, DEFAULT_UNITS, DEFAULT_PRODUCT_TYPE, DEFAULT_MIN_PRICE, DEFAULT_STOCK_STATUS, REGION_CONTENT_IDS } from '../config.js';
 
 const buildURL = (region, vintageFrom, vintageTo, grape = '', subregion = '') => {
     const contentId = REGION_CONTENT_IDS[region.toLowerCase().trim()];

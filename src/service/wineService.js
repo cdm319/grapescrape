@@ -1,4 +1,4 @@
-import { parseCsv, normaliseName, normaliseCurrency } from "./utils.js";
+import { parseCsv, normaliseName, normaliseCurrency } from "../utils.js";
 import { buildURLs } from "./buildURLs.js";
 
 export const fetchCsv = async url => {

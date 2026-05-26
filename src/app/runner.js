@@ -1,4 +1,4 @@
-import { getCurrentWines } from "./wineService.js";
+import { getCurrentWines } from "../service/wineService.js";
 
 export const run = async ({ mode = 'local' } = {}) => {
     const results = await getCurrentWines();
