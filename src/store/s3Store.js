@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3
 
 const s3 = new S3Client({});
 
-export const createS3Store = ({ bucket = process.env.STORE_BUCKET, key = process.env.STORE_KEY }) => {
+export const createS3Store = ({ bucket = process.env.STORE_BUCKET, key = process.env.STORE_KEY } = {}) => {
     if (!bucket || !key) throw new Error('Bucket and key are required');
 
     return {

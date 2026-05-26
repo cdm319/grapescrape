@@ -28,7 +28,7 @@ const buildMessage = ({ added, removed, current }) => {
     return lines.join('\n');
 };
 
-export const createSnsNotifier = ({ topicArn = process.env.SNS_TOPIC_ARN }) => {
+export const createSnsNotifier = ({ topicArn = process.env.SNS_TOPIC_ARN } = {}) => {
     if (!topicArn) throw new Error('Topic ARN is required');
 
     return {
