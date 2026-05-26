@@ -15,7 +15,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "local": "node src/local.js",
+    "local": "node src/app/local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
