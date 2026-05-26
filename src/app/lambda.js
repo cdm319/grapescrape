@@ -3,15 +3,23 @@ import { createS3Store } from "../store/s3Store.js";
 import { createSnsNotifier } from "../notify/snsNotifier.js";
 
 export const handler = async () => {
-    const result = await run({
-        store: createS3Store(),
-        notifier: createSnsNotifier()
-    });
+    try {
+        const result = await run({
+            store: createS3Store(),
+            notifier: createSnsNotifier()
+        });
 
-    console.log('GrapeScrape completed.');
+        console.log('GrapeScrape completed.');
 
-    return {
-        statusCode: 200,
-        body: JSON.stringify(result)
-    };
+        return {
+            statusCode: 200,
+            body: JSON.stringify(result)
+        };
+    } catch (error) {
+        console.error('Error running GrapeScrape:', {
+            message: error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
 };

@@ -16,7 +16,6 @@
   "scripts": {
     "local": "node src/app/local.js",
     "local:test": "node src/app/test.js",
-    "lambda": "node src/app/lambda.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
