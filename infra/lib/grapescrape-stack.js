@@ -1,4 +1,4 @@
-import { Duration, Stack } from 'aws-cdk-lib';
+import { Duration, Stack, Tags } from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -8,6 +8,9 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 export class GrapeScrapeStack extends Stack {
     constructor(scope, id, props) {
         super(scope, id, props);
+
+        Tags.of(this).add('Application', 'grapescrape');
+        Tags.of(this).add('Project', 'grapescrape');
 
         const stateBucket = s3.Bucket.fromBucketArn(this, 'StateBucket', 'arn:aws:s3:::grapescrape-668528910170-eu-west-2-an');
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts')
