@@ -1,17 +1,31 @@
 import { getCurrentWines } from "../service/wineService.js";
+import { diffWines } from "../utils.js";
 
-export const run = async ({ mode = 'local' } = {}) => {
-    const results = await getCurrentWines();
+export const run = async ({ store, notifier, mode = 'local', getWines = getCurrentWines }) => {
+    const current = await getWines();
 
-    if (results.length === 0) {
+    if (current.length === 0) {
         console.log('No results found.');
         return;
     }
 
-    results.sort((a, b) => a.price - b.price);
+    current.sort((a, b) => a.price - b.price);
 
-    if (mode === 'local') {
-        console.table(results);
-        console.log(`Number of results: ${results.length}`);
+    if (!store) throw new Error('Store is not defined');
+    if (!notifier) throw new Error('Notifier is not defined');
+
+    const previous = await store.load();
+
+    const { added, removed } = diffWines(previous, current);
+
+    if (added.length || removed.length) {
+        await store.save(current);
+        await notifier.notify({ added, removed, current });
     }
+
+    return {
+        total: current.length,
+        added: added.length,
+        removed: removed.length
+    };
 };
