@@ -4,7 +4,7 @@ export const stripFirstLine = text => text.slice(text.indexOf('\n') + 1);
 export const normaliseHeader = header => header.trim().toLowerCase().replace(/\s+/g, '_');
 export const normaliseName = text => text.replace(/[\s,]*\b(19|20)\d{2}\s*$/, '');
 export const normaliseCurrency = text => {
-    if (!text) return null;
+    if (!text || typeof text !== 'string') return null;
 
     return parseFloat(text.split(' ')[0].replace(/[^\d.]/g, '')).toFixed(2);
 }

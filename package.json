@@ -19,7 +19,9 @@
     "cdk": "cdk --app 'node infra/bin/grapescrape.js'",
     "cdk:synth": "cdk synth --app 'node infra/bin/grapescrape.js'",
     "cdk:diff": "cdk diff --app 'node infra/bin/grapescrape.js'",
-    "cdk:deploy": "cdk deploy --app 'node infra/bin/grapescrape.js'"
+    "cdk:deploy": "cdk deploy --app 'node infra/bin/grapescrape.js'",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
@@ -29,6 +31,7 @@
     "csv-parse": "^6.1.0"
   },
   "devDependencies": {
-    "aws-cdk": "^2.1124.1"
+    "aws-cdk": "^2.1124.1",
+    "vitest": "^4.1.7"
   }
 }
