@@ -45,6 +45,34 @@ describe('run', () => {
         });
     });
 
+    it('should sort current wines by price before saving and notifying', async () => {
+        const current = [
+            { id: 2, name: 'Expensive wine', price: '30.00' },
+            { id: 1, name: 'Cheap wine', price: '15.00' },
+        ];
+
+        const store = createStore([]);
+        const notifier = createNotifier();
+
+        await run({
+            store,
+            notifier,
+            getWines: vi.fn().mockResolvedValue(current),
+        });
+
+        const sortedCurrent = [
+            { id: 1, name: 'Cheap wine', price: '15.00' },
+            { id: 2, name: 'Expensive wine', price: '30.00' },
+        ];
+
+        expect(store.save).toHaveBeenCalledWith(sortedCurrent);
+        expect(notifier.notify).toHaveBeenCalledWith({
+            added: sortedCurrent,
+            removed: [],
+            current: sortedCurrent,
+        });
+    });
+
     it('should not notify when there are no added or removed wines', async () => {
         const previous = [
             { id: 1, name: 'Existing wine', price: '20.00' },
