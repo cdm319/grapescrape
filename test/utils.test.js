@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import {diffWines, normaliseCurrency, normaliseHeader, normaliseName, parseCsv, stripFirstLine} from '../src/utils.js';
+import {
+    diffWines,
+    normaliseCurrency,
+    normaliseHeader,
+    normaliseName,
+    normaliseVintage,
+    parseCsv,
+    stripFirstLine
+} from '../src/utils.js';
 
 describe('stripFirstLine', () => {
     it('should remove the first line from a string', () => {
@@ -62,6 +70,22 @@ describe('normaliseName', () => {
         expect(result).toBe('Wine Name');
     });
 });
+
+describe('normaliseVintage)', () => {
+    it('should return a number', () => {
+        const vintage = '2020';
+        const result = normaliseVintage(vintage);
+
+        expect(result).toBe(2020);
+    });
+
+    it('should return null if vintage is not a valid numeric string', () => {
+        const vintage = 'not a number';
+        const result = normaliseVintage(vintage);
+
+        expect(result).toBe(null);
+    });
+})
 
 describe('normaliseCurrency', () => {
     it('should convert currency to string with 2 decimal places', () => {

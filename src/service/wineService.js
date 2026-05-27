@@ -1,4 +1,4 @@
-import { parseCsv, normaliseName, normaliseCurrency } from "../utils.js";
+import { parseCsv, normaliseName, normaliseCurrency, normaliseVintage } from "../utils.js";
 import { buildURLs } from "./buildURLs.js";
 
 export const fetchCsv = async url => {
@@ -12,11 +12,15 @@ export const fetchCsv = async url => {
     const records = parseCsv(csv);
 
     return records.map(w => ({
-        id: w.product_code,
-        region: w.origin,
-        vintage: w.vintage,
-        name: normaliseName(w.product_title),
-        price: normaliseCurrency(w.price)
+        id:      w.product_code,
+        region:  w.origin,
+        name:    normaliseName(w.product_title),
+        vintage: normaliseVintage(w.vintage),
+        price:   normaliseCurrency(w.price),
+
+        grape:   w.grape,
+        alcohol: w.alcohol,
+        desc:    w.description
     }));
 };
 

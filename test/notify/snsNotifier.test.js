@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMessage, formatWine } from '../../src/notify/snsNotifier.js';
+import { buildMessage, formatWine, createSnsNotifier } from '../../src/notify/snsNotifier.js';
 
 describe('formatWine', () => {
     it('should format wine name, vintage and price', () => {
@@ -92,5 +92,11 @@ describe('buildMessage', () => {
         expect(message).toContain('- Removed Wine 2020 - £19.00');
         expect(message).not.toContain('Added Wines');
         expect(message).toContain('Current Stock (1):');
+    });
+});
+
+describe('createSnsNotifier', () => {
+    it('requires a topic ARN', () => {
+        expect(() => createSnsNotifier({ topicArn: '' })).toThrow('Topic ARN is required');
     });
 });
