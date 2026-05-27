@@ -2,9 +2,9 @@ import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const sns = new SNSClient({});
 
-const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
+export const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
 
-const buildMessage = ({ added, removed, current }) => {
+export const buildMessage = ({ added, removed, current }) => {
     const lines = [];
 
     lines.push('GrapeScrape Update');
