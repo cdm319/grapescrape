@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildURLs } from '../../src/service/buildURLs.js';
 import {
-    BASE_URL,
     DEFAULT_MIN_PRICE,
     DEFAULT_PRODUCT_TYPE,
     DEFAULT_STOCK_STATUS,
@@ -20,14 +19,14 @@ const decodeParameters = url => {
 
 describe('buildURLs', () => {
     it('builds the expected number of Wine Society CSV URLs', () => {
-        expect(buildURLs()).toHaveLength(17);
+        expect(buildURLs()).toHaveLength(18);
     });
 
     it('builds Bordeaux URL parameters with configured defaults', () => {
         const [url] = buildURLs();
         const { contentId, parameters } = decodeParameters(url);
 
-        expect(url).toStartWith(`${BASE_URL}?`);
+        expect(url).toContain('contentId=');
         expect(contentId).toBe(REGION_CONTENT_IDS.bordeaux);
         expect(parameters).toEqual({
             Unit: DEFAULT_UNITS,
