@@ -21,6 +21,7 @@
     "cdk:diff": "cdk diff --app 'node infra/bin/grapescrape.js'",
     "cdk:deploy": "cdk deploy --app 'node infra/bin/grapescrape.js'",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "csv-parse": "^6.1.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.7",
     "aws-cdk": "^2.1124.1",
     "vitest": "^4.1.7"
   }

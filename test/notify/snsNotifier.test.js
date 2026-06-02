@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { buildMessage, formatWine, createSnsNotifier } from '../../src/notify/snsNotifier.js';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+const sendMock = vi.fn();
+
+const publishMock = vi.fn();
+vi.mock('@aws-sdk/client-sns', () => ({
+    SNSClient: vi.fn(function () { return { send: sendMock } }),
+    PublishCommand: publishMock
+}));
+
+const { buildMessage, formatWine, createSnsNotifier } = await import('../../src/notify/snsNotifier.js');
 
 describe('formatWine', () => {
     it('should format wine name, vintage and price', () => {
@@ -96,7 +104,26 @@ describe('buildMessage', () => {
 });
 
 describe('createSnsNotifier', () => {
+    beforeEach(() => {
+        sendMock.mockReset();
+    });
+
     it('requires a topic ARN', () => {
         expect(() => createSnsNotifier({ topicArn: '' })).toThrow('Topic ARN is required');
+    });
+
+    it('sends a publishCommand when notify is called', async () => {
+        const notifier = createSnsNotifier({ topicArn: 'arn:aws:sns:region1:12345:MyTopic' });
+        const data = { added: [], removed: [], current: [] };
+
+        await notifier.notify(data);
+
+        expect(publishMock).toHaveBeenCalledWith({
+            TopicArn: 'arn:aws:sns:region1:12345:MyTopic',
+            Subject: 'GrapeScrape Update',
+            Message: buildMessage(data)
+        });
+
+        expect(sendMock).toHaveBeenCalledWith(expect.any(Object));
     });
 });
