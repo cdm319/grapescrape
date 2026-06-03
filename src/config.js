@@ -3,7 +3,9 @@ export const REGION_CONTENT_IDS = {
     usa:      '1073742871',
     rioja:    '1073742747',
     ribera:   '1073742748',
-    tuscany:  '1073742741'
+    tuscany:  '1073742741',
+    sa:       '1073742739',
+    nz:       '1073742858'
 };
 
 export const BASE_URL = 'https://www.thewinesociety.com/CustomFileDownload/DownloadCsv';
