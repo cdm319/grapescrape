@@ -44,7 +44,7 @@ export class GrapeScrapeStack extends Stack {
                 ]
             }),
             memorySize: 256,
-            timeout: Duration.seconds(120),
+            timeout: Duration.seconds(600),
             environment: {
                 STORE_BUCKET: "grapescrape-668528910170-eu-west-2-an",
                 STORE_KEY: "wineStore.json",

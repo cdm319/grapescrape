@@ -36,12 +36,14 @@ describe('run', () => {
             added: [{ id: 2, name: 'New wine', price: '25.00' }],
             removed: [],
             current,
+            highlightedMatches: []
         });
 
         expect(result).toEqual({
             total: 2,
             added: 1,
             removed: 0,
+            highlightedMatches: 0
         });
     });
 
@@ -70,6 +72,7 @@ describe('run', () => {
             added: sortedCurrent,
             removed: [],
             current: sortedCurrent,
+            highlightedMatches: []
         });
     });
 
@@ -98,6 +101,7 @@ describe('run', () => {
             total: 1,
             added: 0,
             removed: 0,
+            highlightedMatches: 0
         });
     });
 

@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3
 
 const s3 = new S3Client({});
 
-export const createS3Store = ({ bucket = process.env.STORE_BUCKET, key = process.env.STORE_KEY } = {}) => {
+export const createS3Store = ({ bucket = process.env.STORE_BUCKET, key = process.env.STORE_KEY, defaultValue = [] } = {}) => {
     if (!bucket || !key) throw new Error('Bucket and key are required');
 
     return {
@@ -18,7 +18,7 @@ export const createS3Store = ({ bucket = process.env.STORE_BUCKET, key = process
                 const body = await response.Body.transformToString();
                 return JSON.parse(body);
             } catch (error) {
-                if (error.name === 'NoSuchKey') return []; // file does not exist, return empty array
+                if (error.name === 'NoSuchKey') return defaultValue; // file does not exist, return empty array
                 throw error;
             }
         },

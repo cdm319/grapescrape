@@ -4,11 +4,30 @@ const sns = new SNSClient({});
 
 export const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
 
-export const buildMessage = ({ added, removed, current }) => {
+const formatHighlightedMatch = ({ wine, assessment }) => {
+    const lines = [];
+
+    lines.push(`+ ${formatWine(wine)}`);
+    lines.push(`  ${assessment.fit} match, ${assessment.confidence} confidence`);
+
+    if (assessment.summary) lines.push(`  ${assessment.summary}`);
+    if (assessment.reasons?.length) lines.push(`  Why: ${assessment.reasons.slice(0, 2).join('; ')}`);
+    if (assessment.cautions?.length) lines.push(`  Caution: ${assessment.cautions.slice(0, 1).join('; ')}`);
+
+    return lines.join('\n');
+};
+
+export const buildMessage = ({ added, removed, current, highlightedMatches = [] }) => {
     const lines = [];
 
     lines.push('GrapeScrape Update');
     lines.push('')
+
+    if (highlightedMatches.length) {
+        lines.push(`High Confidence Matches (${highlightedMatches.length}):`);
+        highlightedMatches.forEach(match => lines.push(formatHighlightedMatch(match)));
+        lines.push('');
+    }
 
     if (added.length) {
         lines.push(`New Wines (${added.length}):`);
