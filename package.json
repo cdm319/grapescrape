@@ -26,10 +26,12 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
+    "@aws-sdk/client-secrets-manager": "^3.1060.0",
     "@aws-sdk/client-sns": "^3.1053.0",
     "aws-cdk-lib": "^2.257.0",
     "constructs": "^10.6.0",
-    "csv-parse": "^6.1.0"
+    "csv-parse": "^6.1.0",
+    "openai": "^6.41.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.7",

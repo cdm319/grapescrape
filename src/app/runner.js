@@ -22,6 +22,8 @@ export const run = async ({ store, notifier, getWines = getCurrentWines }) => {
         await notifier.notify({ added, removed, current });
     }
 
+    console.log(`Total: ${current.length} | Added: ${added.length} | Removed: ${removed.length}`);
+
     return {
         total: current.length,
         added: added.length,

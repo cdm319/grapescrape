@@ -4,6 +4,7 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 export class GrapeScrapeStack extends Stack {
     constructor(scope, id, props) {
@@ -14,6 +15,7 @@ export class GrapeScrapeStack extends Stack {
 
         const stateBucket = s3.Bucket.fromBucketArn(this, 'StateBucket', 'arn:aws:s3:::grapescrape-668528910170-eu-west-2-an');
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts')
+        const openAiApiKeySecret = secretsmanager.Secret.fromSecretCompleteArn(this, 'OpenAiApiKeySecret', 'arn:aws:secretsmanager:eu-west-2:668528910170:secret:grapescrape/openai-api-key-AxwYC7')
 
         const grapescrapeFunction = new lambda.Function(this, 'GrapeScrapeFunction', {
             functionName: 'grapescrape-cdk',
@@ -46,12 +48,16 @@ export class GrapeScrapeStack extends Stack {
             environment: {
                 STORE_BUCKET: "grapescrape-668528910170-eu-west-2-an",
                 STORE_KEY: "wineStore.json",
-                SNS_TOPIC_ARN: "arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts"
+                SNS_TOPIC_ARN: "arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts",
+                OPENAI_API_KEY_NAME: openAiApiKeySecret.secretName,
+                OPENAI_MODEL: "gpt-5.5-2026-04-23",
+                ASSESSMENT_CACHE_KEY: "assessments.json"
             }
         });
 
         stateBucket.grantReadWrite(grapescrapeFunction);
         alertsTopic.grantPublish(grapescrapeFunction);
+        openAiApiKeySecret.grantRead(grapescrapeFunction);
 
         const schedulerRole = new iam.Role(this, 'GrapeScrapeSchedulerRole', {
             assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com')

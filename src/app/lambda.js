@@ -4,6 +4,8 @@ import { createSnsNotifier } from "../notify/snsNotifier.js";
 
 export const handler = async () => {
     try {
+        console.log('Starting GrapeScrape...');
+
         const result = await run({
             store: createS3Store(),
             notifier: createSnsNotifier()
