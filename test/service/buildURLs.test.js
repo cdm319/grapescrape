@@ -19,7 +19,7 @@ const decodeParameters = url => {
 
 describe('buildURLs', () => {
     it('builds the expected number of Wine Society CSV URLs', () => {
-        expect(buildURLs()).toHaveLength(18);
+        expect(buildURLs()).toHaveLength(22);
     });
 
     it('builds Bordeaux URL parameters with configured defaults', () => {
@@ -48,7 +48,7 @@ describe('buildURLs', () => {
         expect(parameters).toMatchObject({
             VintageFrom: 2000,
             VintageTo: 2025,
-            Grape: '12958,12907',
+            Grape: '12920,12958,14291,12907,13532',
             Region: '14896',
         });
     });
