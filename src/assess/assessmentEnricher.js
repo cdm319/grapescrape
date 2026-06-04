@@ -31,6 +31,7 @@ export const createAssessmentEnricher = ({ store, provider, palateProfile, model
                             palateProfileVersion: palateProfile.version,
                             sourceHash,
                             model,
+                            wine,
                             createdAt: new Date().toISOString(),
                             assessment
                         };

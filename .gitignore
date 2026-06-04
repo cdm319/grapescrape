@@ -147,3 +147,4 @@ localStore.json
 lambda.zip
 cdk.out/
 asset-output/
+.DS_Store
