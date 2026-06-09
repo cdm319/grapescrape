@@ -39,16 +39,16 @@ export const buildURLs = () => [
     buildURL('nz', 2015, 2016, '12920,12958,14291,12907,13532'),
     buildURL('nz', 2019, 2021, '12920,12958,14291,12907,13532'),
 
-    // Rioja - 2010, 2011, 2015, 2016, 2019, 2021
+    // Rioja - 2010, 2011, 2015, 2016, 2019, 2021, 2022
     buildURL('rioja', 2010, 2011),
     buildURL('rioja', 2015, 2016),
     buildURL('rioja', 2019, 2019),
-    buildURL('rioja', 2021, 2021),
+    buildURL('rioja', 2021, 2022),
 
-    // Ribera del Duero - 2010, 2011, 2015, 2016, 2018, 2019, 2020, 2021
+    // Ribera del Duero - 2010, 2011, 2015, 2016, 2018, 2019, 2020, 2021, 2022
     buildURL('ribera', 2010, 2011),
     buildURL('ribera', 2015, 2016),
-    buildURL('ribera', 2018, 2021),
+    buildURL('ribera', 2018, 2022),
 
     // Tuscany - 2010, 2015, 2016, 2019, 2021, 2022
     buildURL('tuscany', 2010, 2010),
