@@ -9,7 +9,7 @@ export const createAssessmentSourceHash = wine => {
         region: wine.region ?? null,
         grape: wine.grape ?? null,
         alcohol: wine.alcohol ?? null,
-        description: wine.description ?? null,
+        description: wine.description ?? wine.desc ?? null
     };
 
     return crypto

@@ -1,22 +1,7 @@
-import {
-    ASSESSMENT_VERSION,
-    createAssessmentSourceHash,
-    isCachedAssessmentValid,
-    shouldHighlightAssessment,
-} from './assessmentCache.js';
+import { ASSESSMENT_VERSION, createAssessmentSourceHash, isCachedAssessmentValid, shouldHighlightAssessment } from './assessmentCache.js';
 import { mapWithConcurrency } from './concurrency.js';
 
-export const createAssessmentEnricher = ({
-    store,
-    provider,
-    palateProfile,
-    model,
-    assessmentVersion = ASSESSMENT_VERSION,
-    maxAssessmentsPerRun = 20,
-    assessmentConcurrency = 10,
-    now = () => new Date().toISOString(),
-    logger = console,
-} = {}) => {
+export const createAssessmentEnricher = ({ store, provider, palateProfile, model, assessmentVersion = ASSESSMENT_VERSION, maxAssessmentsPerRun = 20, assessmentConcurrency = 10 } = {}) => {
     if (!store) throw new Error('Assessment store is required');
     if (!provider) throw new Error('Assessment provider is required');
     if (!palateProfile) throw new Error('Palate profile is required');
@@ -40,7 +25,7 @@ export const createAssessmentEnricher = ({
                 }
 
                 if (assessmentsToRun.length >= maxAssessmentsPerRun) {
-                    logger.warn('Skipping assessment due to MAX_ASSESSMENTS_PER_RUN', {
+                    console.warn('Skipping assessment due to MAX_ASSESSMENTS_PER_RUN', {
                         wineId: wine.id,
                         maxAssessmentsPerRun,
                     });
@@ -50,7 +35,7 @@ export const createAssessmentEnricher = ({
                 assessmentsToRun.push({ wine, sourceHash });
             }
 
-            logger.info('Running wine assessments', {
+            console.log('Running wine assessments', {
                 currentWines: wines.length,
                 assessmentsToRun: assessmentsToRun.length,
                 assessmentConcurrency,
@@ -62,7 +47,7 @@ export const createAssessmentEnricher = ({
                 assessmentConcurrency,
                 async ({ wine, sourceHash }) => {
                     try {
-                        logger.info(`Sending wine ${wine.id} for assessment.`);
+                        console.log(`Sending wine ${wine.id} for assessment.`);
 
                         const assessment = await provider.assessWine({ wine, palateProfile });
 
@@ -75,12 +60,12 @@ export const createAssessmentEnricher = ({
                                 sourceHash,
                                 model,
                                 wine,
-                                createdAt: now(),
+                                createdAt: Date.now(),
                                 assessment,
                             },
                         };
                     } catch (error) {
-                        logger.error(`Error assessing wine ${wine.id}`, error);
+                        console.error(`Error assessing wine ${wine.id}`, error);
 
                         return {
                             ok: false,

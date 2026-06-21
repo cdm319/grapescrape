@@ -1,5 +1,5 @@
-import { getCurrentWines } from '../service/wineService.js';
-import { diffWines } from '../utils.js';
+import { getCurrentWines } from "../service/wineService.js";
+import { diffWines } from "../utils.js";
 
 export const run = async ({ store, notifier, getWines = getCurrentWines, assessmentEnricher }) => {
     const current = await getWines();
@@ -19,8 +19,8 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
     if (assessmentEnricher && current.length) {
         try {
             highlightedMatches = await assessmentEnricher.assessWines(current);
-        } catch {
-            highlightedMatches = [];
+        } catch (error) {
+            console.error('Error assessing wines:', error);
         }
     }
 
@@ -34,6 +34,6 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
         total: current.length,
         added: added.length,
         removed: removed.length,
-        highlightedMatches: highlightedMatches.length,
+        highlightedMatches: highlightedMatches.length
     };
 };

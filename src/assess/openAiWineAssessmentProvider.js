@@ -1,17 +1,17 @@
-import OpenAI from 'openai';
-import { getOpenAiApiKey } from '../secretsManager.js';
-import { wineAssessmentSchema } from './wineAssessmentSchema.js';
-import { wineAssessmentPrompt } from './wineAssessmentPrompt.js';
+import OpenAI from "openai";
+import { getOpenAiApiKey } from "../secretsManager.js";
+import { wineAssessmentSchema } from "./wineAssessmentSchema.js";
+import { wineAssessmentPrompt } from "./wineAssessmentPrompt.js";
 
 export const createOpenAiWineAssessmentProvider = ({ model = process.env.OPENAI_MODEL, getApiKey = getOpenAiApiKey } = {}) => {
-    let clientPromise;
+    let existingClient;
 
     const getClient = async () => {
-        if (!clientPromise) {
-            clientPromise = getApiKey().then(apiKey => new OpenAI({ apiKey }));
+        if (!existingClient) {
+            existingClient = getApiKey().then(apiKey => new OpenAI({ apiKey }));
         }
 
-        return clientPromise;
+        return existingClient;
     };
 
     return {
@@ -52,14 +52,6 @@ export const createOpenAiWineAssessmentProvider = ({ model = process.env.OPENAI_
                         schema: wineAssessmentSchema,
                     },
                 },
-            });
-
-            console.log('OpenAI assessment usage', {
-                wineId: wine.id,
-                model: response.model,
-                inputTokens: response.usage?.input_tokens,
-                cachedInputTokens: response.usage?.input_tokens_details?.cached_tokens,
-                outputTokens: response.usage?.output_tokens,
             });
 
             console.log(`Received assessment for wine ${wine.id} from OpenAI.`);
