@@ -19,8 +19,8 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
     if (assessmentEnricher && current.length) {
         try {
             highlightedMatches = await assessmentEnricher.assessWines(current);
-        } catch {
-            highlightedMatches = [];
+        } catch (error) {
+            console.error('Error assessing wines:', error);
         }
     }
 
