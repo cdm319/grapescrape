@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAssessmentEnricher } from '../../src/assess/assessmentEnricher.js';
 
 const createStore = initial => ({
@@ -6,24 +6,39 @@ const createStore = initial => ({
     save: vi.fn().mockResolvedValue(undefined),
 });
 
+const createLogger = () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+});
+
 const palateProfile = {
     version: 1,
     summary: 'Likes ripe plush reds',
 };
 
+const createWine = id => ({
+    id,
+    name: `Test Wine ${id}`,
+    vintage: 2020,
+    region: 'Bordeaux',
+    grape: 'Merlot',
+    alcohol: '13.5%',
+    description: 'Ripe and supple',
+});
+
 describe('createAssessmentEnricher', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.spyOn(console, 'log').mockImplementation(() => {});
-        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('assesses uncached added wines and saves them to cache', async () => {
+    it('assesses uncached wines and saves them to cache', async () => {
         const store = createStore({});
+        const logger = createLogger();
         const provider = {
             assessWine: vi.fn().mockResolvedValue({
                 fit: 'strong',
@@ -39,18 +54,11 @@ describe('createAssessmentEnricher', () => {
             store,
             provider,
             palateProfile,
-            model: 'test-model'
+            model: 'test-model',
+            logger,
         });
 
-        const wine = {
-            id: 'ABC123',
-            name: 'Test Wine',
-            vintage: 2020,
-            region: 'Bordeaux',
-            grape: 'Merlot',
-            alcohol: '13.5%',
-            description: 'Ripe and supple',
-        };
+        const wine = createWine('ABC123');
 
         const matches = await enricher.assessWines([wine]);
 
@@ -64,6 +72,7 @@ describe('createAssessmentEnricher', () => {
                 assessmentVersion: 1,
                 palateProfileVersion: 1,
                 model: 'test-model',
+                wine,
                 assessment: expect.objectContaining({
                     fit: 'strong',
                     confidence: 'high',
@@ -82,18 +91,9 @@ describe('createAssessmentEnricher', () => {
         ]);
     });
 
-    it('reuses valid cached assessments', async () => {
-        const wine = {
-            id: 'ABC123',
-            name: 'Test Wine',
-            vintage: 2020,
-            region: 'Bordeaux',
-            grape: 'Merlot',
-            alcohol: '13.5%',
-            description: 'Ripe and supple',
-        };
+    it('reuses valid cached assessments without returning cached highlights', async () => {
+        const wine = createWine('ABC123');
 
-        // Create the first run to get the real sourceHash.
         const firstStore = createStore({});
         const firstProvider = {
             assessWine: vi.fn().mockResolvedValue({
@@ -110,6 +110,7 @@ describe('createAssessmentEnricher', () => {
             store: firstStore,
             provider: firstProvider,
             palateProfile,
+            logger: createLogger(),
         });
 
         await firstEnricher.assessWines([wine]);
@@ -125,16 +126,18 @@ describe('createAssessmentEnricher', () => {
             store: secondStore,
             provider: secondProvider,
             palateProfile,
+            logger: createLogger(),
         });
 
         const matches = await secondEnricher.assessWines([wine]);
 
         expect(secondProvider.assessWine).not.toHaveBeenCalled();
-        expect(matches).toHaveLength(1);
+        expect(matches).toEqual([]);
     });
 
     it('continues when one assessment fails', async () => {
         const store = createStore({});
+        const logger = createLogger();
         const provider = {
             assessWine: vi.fn()
                 .mockRejectedValueOnce(new Error('OpenAI failed'))
@@ -156,13 +159,94 @@ describe('createAssessmentEnricher', () => {
         const enricher = createAssessmentEnricher({
             store,
             provider,
-            palateProfile
+            palateProfile,
+            logger,
         });
 
         const matches = await enricher.assessWines(wines);
 
-        expect(console.error).toHaveBeenCalled();
+        expect(logger.error).toHaveBeenCalled();
         expect(matches).toHaveLength(1);
         expect(matches[0].wine.id).toBe('B');
+    });
+
+    it('respects the maximum assessments per run', async () => {
+        const store = createStore({});
+        const logger = createLogger();
+        const provider = {
+            assessWine: vi.fn().mockResolvedValue({
+                fit: 'maybe',
+                confidence: 'medium',
+                highlight: false,
+                summary: 'Not highlighted',
+                reasons: [],
+                cautions: [],
+            }),
+        };
+
+        const enricher = createAssessmentEnricher({
+            store,
+            provider,
+            palateProfile,
+            maxAssessmentsPerRun: 2,
+            logger,
+        });
+
+        await enricher.assessWines([
+            createWine('A'),
+            createWine('B'),
+            createWine('C'),
+        ]);
+
+        expect(provider.assessWine).toHaveBeenCalledTimes(2);
+        expect(logger.warn).toHaveBeenCalledWith(
+            'Skipping assessment due to MAX_ASSESSMENTS_PER_RUN',
+            expect.objectContaining({ wineId: 'C' })
+        );
+    });
+
+    it('runs assessments with bounded concurrency', async () => {
+        const store = createStore({});
+        const logger = createLogger();
+        let active = 0;
+        let maxActive = 0;
+
+        const provider = {
+            assessWine: vi.fn().mockImplementation(async () => {
+                active += 1;
+                maxActive = Math.max(maxActive, active);
+
+                await new Promise(resolve => setTimeout(resolve, 1));
+
+                active -= 1;
+
+                return {
+                    fit: 'maybe',
+                    confidence: 'medium',
+                    highlight: false,
+                    summary: 'Not highlighted',
+                    reasons: [],
+                    cautions: [],
+                };
+            }),
+        };
+
+        const enricher = createAssessmentEnricher({
+            store,
+            provider,
+            palateProfile,
+            assessmentConcurrency: 2,
+            logger,
+        });
+
+        await enricher.assessWines([
+            createWine('A'),
+            createWine('B'),
+            createWine('C'),
+            createWine('D'),
+        ]);
+
+        expect(provider.assessWine).toHaveBeenCalledTimes(4);
+        expect(maxActive).toBe(2);
     });
 });
