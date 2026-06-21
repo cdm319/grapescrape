@@ -17,7 +17,11 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
     let highlightedMatches = [];
 
     if (assessmentEnricher && current.length) {
-        highlightedMatches = await assessmentEnricher.assessWines(current);
+        try {
+            highlightedMatches = await assessmentEnricher.assessWines(current);
+        } catch {
+            highlightedMatches = [];
+        }
     }
 
     await store.save(current);
