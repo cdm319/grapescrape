@@ -1,4 +1,4 @@
-import { run } from './runner.js'
+import { run } from "./runner.js"
 import { createS3Store } from "../store/s3Store.js";
 import { createSnsNotifier } from "../notify/snsNotifier.js";
 import { createAssessmentEnricher } from "../assess/assessmentEnricher.js";
@@ -21,7 +21,9 @@ export const handler = async () => {
             store: assessmentStore,
             provider: assessmentProvider,
             palateProfile: palateProfile,
-            model: process.env.OPENAI_MODEL
+            model: process.env.OPENAI_MODEL,
+            maxAssessmentsPerRun: Number(process.env.MAX_ASSESSMENTS_PER_RUN ?? 20),
+            assessmentConcurrency: Number(process.env.ASSESSMENT_CONCURRENCY ?? 10)
         });
 
         const result = await run({

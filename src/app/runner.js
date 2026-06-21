@@ -4,9 +4,7 @@ import { diffWines } from "../utils.js";
 export const run = async ({ store, notifier, getWines = getCurrentWines, assessmentEnricher }) => {
     const current = await getWines();
 
-    if (current.length === 0) {
-        throw new Error('No results found');
-    }
+    if (current.length === 0) throw new Error('No results found');
 
     current.sort((a, b) => a.price - b.price);
 
@@ -18,10 +16,9 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
 
     let highlightedMatches = [];
 
-    if (assessmentEnricher && added.length) {
+    if (assessmentEnricher && current.length) {
         try {
-            console.log(`Assessing ${added.length} wines...`);
-            highlightedMatches = await assessmentEnricher.assessWines(added);
+            highlightedMatches = await assessmentEnricher.assessWines(current);
         } catch (error) {
             console.error('Error assessing wines:', error);
         }
@@ -29,11 +26,9 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
 
     await store.save(current);
 
-    if (added.length || removed.length) {
+    if (added.length || removed.length || highlightedMatches.length) {
         await notifier.notify({ added, removed, current, highlightedMatches });
     }
-
-    console.log(`Total: ${current.length} | Added: ${added.length} | Removed: ${removed.length}`);
 
     return {
         total: current.length,

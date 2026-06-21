@@ -10,6 +10,10 @@ const createNotifier = () => ({
     notify: vi.fn().mockResolvedValue(undefined),
 });
 
+const createAssessmentEnricher = highlightedMatches => ({
+    assessWines: vi.fn().mockResolvedValue(highlightedMatches),
+});
+
 describe('run', () => {
     it('should load previous wines, save current wines, and return summary counts', async () => {
         const previous = [
@@ -36,14 +40,14 @@ describe('run', () => {
             added: [{ id: 2, name: 'New wine', price: '25.00' }],
             removed: [],
             current,
-            highlightedMatches: []
+            highlightedMatches: [],
         });
 
         expect(result).toEqual({
             total: 2,
             added: 1,
             removed: 0,
-            highlightedMatches: 0
+            highlightedMatches: 0,
         });
     });
 
@@ -72,11 +76,11 @@ describe('run', () => {
             added: sortedCurrent,
             removed: [],
             current: sortedCurrent,
-            highlightedMatches: []
+            highlightedMatches: [],
         });
     });
 
-    it('should not notify when there are no added or removed wines', async () => {
+    it('should not notify when there are no added, removed, or highlighted wines', async () => {
         const previous = [
             { id: 1, name: 'Existing wine', price: '20.00' },
         ];
@@ -101,8 +105,59 @@ describe('run', () => {
             total: 1,
             added: 0,
             removed: 0,
-            highlightedMatches: 0
+            highlightedMatches: 0,
         });
+    });
+
+    it('passes all current wines to the assessment enricher', async () => {
+        const current = [
+            { id: 1, name: 'Existing wine', price: '20.00' },
+            { id: 2, name: 'New wine', price: '25.00' },
+        ];
+
+        const store = createStore([{ id: 1, name: 'Existing wine', price: '20.00' }]);
+        const notifier = createNotifier();
+        const assessmentEnricher = createAssessmentEnricher([]);
+
+        await run({
+            store,
+            notifier,
+            getWines: vi.fn().mockResolvedValue(current),
+            assessmentEnricher,
+        });
+
+        expect(assessmentEnricher.assessWines).toHaveBeenCalledWith(current);
+    });
+
+    it('notifies when highlighted matches are found without added or removed wines', async () => {
+        const current = [
+            { id: 1, name: 'Existing wine', price: '20.00' },
+        ];
+        const highlightedMatches = [
+            {
+                wine: current[0],
+                assessment: { fit: 'strong', confidence: 'high', highlight: true },
+            },
+        ];
+
+        const store = createStore(current);
+        const notifier = createNotifier();
+        const assessmentEnricher = createAssessmentEnricher(highlightedMatches);
+
+        const result = await run({
+            store,
+            notifier,
+            getWines: vi.fn().mockResolvedValue(current),
+            assessmentEnricher,
+        });
+
+        expect(notifier.notify).toHaveBeenCalledWith({
+            added: [],
+            removed: [],
+            current,
+            highlightedMatches,
+        });
+        expect(result.highlightedMatches).toBe(1);
     });
 
     it('should throw when no wines are returned', async () => {
