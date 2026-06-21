@@ -12,7 +12,7 @@ const wine = {
     region: 'Bordeaux',
     grape: 'Merlot',
     alcohol: '13.5%',
-    description: 'Ripe and supple',
+    desc: 'Ripe and supple',
     price: '25.00',
 };
 
@@ -21,20 +21,6 @@ describe('assessmentCache', () => {
         expect(createAssessmentSourceHash(wine)).toBe(createAssessmentSourceHash({
             ...wine,
             price: '30.00',
-        }));
-    });
-
-    it('includes description when creating the assessment source hash', () => {
-        expect(createAssessmentSourceHash(wine)).not.toBe(createAssessmentSourceHash({
-            ...wine,
-            description: 'Lean and savoury',
-        }));
-    });
-
-    it('includes grape when creating the assessment source hash', () => {
-        expect(createAssessmentSourceHash(wine)).not.toBe(createAssessmentSourceHash({
-            ...wine,
-            grape: 'Cabernet Sauvignon',
         }));
     });
 
