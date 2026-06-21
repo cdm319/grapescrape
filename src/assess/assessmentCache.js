@@ -7,8 +7,9 @@ export const createAssessmentSourceHash = wine => {
         name: wine.name ?? null,
         vintage: wine.vintage ?? null,
         region: wine.region ?? null,
+        grape: wine.grape ?? null,
         alcohol: wine.alcohol ?? null,
-        description: wine.desc ?? null,
+        description: wine.description ?? null,
     };
 
     return crypto
@@ -17,7 +18,7 @@ export const createAssessmentSourceHash = wine => {
         .digest('hex');
 };
 
-export const isCachedAssessmentValid = ({cached, sourceHash, palateProfileVersion, assessmentVersion = ASSESSMENT_VERSION}) => {
+export const isCachedAssessmentValid = ({ cached, sourceHash, palateProfileVersion, assessmentVersion = ASSESSMENT_VERSION }) => {
     if (!cached) return false;
 
     return cached.sourceHash === sourceHash &&
