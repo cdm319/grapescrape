@@ -6,12 +6,6 @@ const createStore = initial => ({
     save: vi.fn().mockResolvedValue(undefined),
 });
 
-const createLogger = () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-});
-
 const palateProfile = {
     version: 1,
     summary: 'Likes ripe plush reds',
@@ -30,6 +24,9 @@ const createWine = id => ({
 describe('createAssessmentEnricher', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -38,7 +35,6 @@ describe('createAssessmentEnricher', () => {
 
     it('assesses uncached wines and saves them to cache', async () => {
         const store = createStore({});
-        const logger = createLogger();
         const provider = {
             assessWine: vi.fn().mockResolvedValue({
                 fit: 'strong',
@@ -54,8 +50,7 @@ describe('createAssessmentEnricher', () => {
             store,
             provider,
             palateProfile,
-            model: 'test-model',
-            logger,
+            model: 'test-model'
         });
 
         const wine = createWine('ABC123');
@@ -109,8 +104,7 @@ describe('createAssessmentEnricher', () => {
         const firstEnricher = createAssessmentEnricher({
             store: firstStore,
             provider: firstProvider,
-            palateProfile,
-            logger: createLogger(),
+            palateProfile
         });
 
         await firstEnricher.assessWines([wine]);
@@ -125,8 +119,7 @@ describe('createAssessmentEnricher', () => {
         const secondEnricher = createAssessmentEnricher({
             store: secondStore,
             provider: secondProvider,
-            palateProfile,
-            logger: createLogger(),
+            palateProfile
         });
 
         const matches = await secondEnricher.assessWines([wine]);
@@ -137,7 +130,6 @@ describe('createAssessmentEnricher', () => {
 
     it('continues when one assessment fails', async () => {
         const store = createStore({});
-        const logger = createLogger();
         const provider = {
             assessWine: vi.fn()
                 .mockRejectedValueOnce(new Error('OpenAI failed'))
@@ -159,20 +151,18 @@ describe('createAssessmentEnricher', () => {
         const enricher = createAssessmentEnricher({
             store,
             provider,
-            palateProfile,
-            logger,
+            palateProfile
         });
 
         const matches = await enricher.assessWines(wines);
 
-        expect(logger.error).toHaveBeenCalled();
+        expect(console.error).toHaveBeenCalled();
         expect(matches).toHaveLength(1);
         expect(matches[0].wine.id).toBe('B');
     });
 
     it('respects the maximum assessments per run', async () => {
         const store = createStore({});
-        const logger = createLogger();
         const provider = {
             assessWine: vi.fn().mockResolvedValue({
                 fit: 'maybe',
@@ -188,8 +178,7 @@ describe('createAssessmentEnricher', () => {
             store,
             provider,
             palateProfile,
-            maxAssessmentsPerRun: 2,
-            logger,
+            maxAssessmentsPerRun: 2
         });
 
         await enricher.assessWines([
@@ -199,7 +188,7 @@ describe('createAssessmentEnricher', () => {
         ]);
 
         expect(provider.assessWine).toHaveBeenCalledTimes(2);
-        expect(logger.warn).toHaveBeenCalledWith(
+        expect(console.warn).toHaveBeenCalledWith(
             'Skipping assessment due to MAX_ASSESSMENTS_PER_RUN',
             expect.objectContaining({ wineId: 'C' })
         );
@@ -207,7 +196,6 @@ describe('createAssessmentEnricher', () => {
 
     it('runs assessments with bounded concurrency', async () => {
         const store = createStore({});
-        const logger = createLogger();
         let active = 0;
         let maxActive = 0;
 
@@ -235,8 +223,7 @@ describe('createAssessmentEnricher', () => {
             store,
             provider,
             palateProfile,
-            assessmentConcurrency: 2,
-            logger,
+            assessmentConcurrency: 2
         });
 
         await enricher.assessWines([
