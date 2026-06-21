@@ -1,12 +1,10 @@
-import { getCurrentWines } from "../service/wineService.js";
-import { diffWines } from "../utils.js";
+import { getCurrentWines } from '../service/wineService.js';
+import { diffWines } from '../utils.js';
 
 export const run = async ({ store, notifier, getWines = getCurrentWines, assessmentEnricher }) => {
     const current = await getWines();
 
-    if (current.length === 0) {
-        throw new Error('No results found');
-    }
+    if (current.length === 0) throw new Error('No results found');
 
     current.sort((a, b) => a.price - b.price);
 
@@ -18,27 +16,20 @@ export const run = async ({ store, notifier, getWines = getCurrentWines, assessm
 
     let highlightedMatches = [];
 
-    if (assessmentEnricher && added.length) {
-        try {
-            console.log(`Assessing ${added.length} wines...`);
-            highlightedMatches = await assessmentEnricher.assessWines(added);
-        } catch (error) {
-            console.error('Error assessing wines:', error);
-        }
+    if (assessmentEnricher && current.length) {
+        highlightedMatches = await assessmentEnricher.assessWines(current);
     }
 
     await store.save(current);
 
-    if (added.length || removed.length) {
+    if (added.length || removed.length || highlightedMatches.length) {
         await notifier.notify({ added, removed, current, highlightedMatches });
     }
-
-    console.log(`Total: ${current.length} | Added: ${added.length} | Removed: ${removed.length}`);
 
     return {
         total: current.length,
         added: added.length,
         removed: removed.length,
-        highlightedMatches: highlightedMatches.length
+        highlightedMatches: highlightedMatches.length,
     };
 };
