@@ -1,9 +1,9 @@
-import { run } from './runner.js'
-import { createS3Store } from '../store/s3Store.js';
-import { createSnsNotifier } from '../notify/snsNotifier.js';
-import { createAssessmentEnricher } from '../assess/assessmentEnricher.js';
-import { createOpenAiWineAssessmentProvider } from '../assess/openAiWineAssessmentProvider.js';
-import { palateProfile } from '../assess/palateProfile.js';
+import { run } from "./runner.js"
+import { createS3Store } from "../store/s3Store.js";
+import { createSnsNotifier } from "../notify/snsNotifier.js";
+import { createAssessmentEnricher } from "../assess/assessmentEnricher.js";
+import { createOpenAiWineAssessmentProvider } from "../assess/openAiWineAssessmentProvider.js";
+import { palateProfile } from "../assess/palateProfile.js";
 
 export const handler = async () => {
     try {
@@ -20,7 +20,7 @@ export const handler = async () => {
         const assessmentEnricher = createAssessmentEnricher({
             store: assessmentStore,
             provider: assessmentProvider,
-            palateProfile,
+            palateProfile: palateProfile,
             model: process.env.OPENAI_MODEL,
             maxAssessmentsPerRun: Number(process.env.MAX_ASSESSMENTS_PER_RUN ?? 20),
             assessmentConcurrency: Number(process.env.ASSESSMENT_CONCURRENCY ?? 10)
@@ -29,7 +29,7 @@ export const handler = async () => {
         const result = await run({
             store: createS3Store(),
             notifier: createSnsNotifier(),
-            assessmentEnricher
+            assessmentEnricher: assessmentEnricher
         });
 
         console.log('GrapeScrape completed.');
