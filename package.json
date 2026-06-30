@@ -11,6 +11,7 @@
     "url": "git+https://github.com/cdm319/grapescrape.git"
   },
   "license": "UNLICENSED",
+  "private": true,
   "author": "Chris Matthews <chris@matthews.digital>",
   "type": "module",
   "scripts": {
