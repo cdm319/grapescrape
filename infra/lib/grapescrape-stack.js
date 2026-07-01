@@ -1,10 +1,15 @@
-import { Duration, Stack, Tags } from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as sns from 'aws-cdk-lib/aws-sns';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class GrapeScrapeStack extends Stack {
     constructor(scope, id, props) {
@@ -13,71 +18,77 @@ export class GrapeScrapeStack extends Stack {
         Tags.of(this).add('Application', 'grapescrape');
         Tags.of(this).add('Project', 'grapescrape');
 
-        const stateBucket = s3.Bucket.fromBucketArn(this, 'StateBucket', 'arn:aws:s3:::grapescrape-668528910170-eu-west-2-an');
-        const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts')
-        const openAiApiKeySecret = secretsmanager.Secret.fromSecretCompleteArn(this, 'OpenAiApiKeySecret', 'arn:aws:secretsmanager:eu-west-2:668528910170:secret:grapescrape/openai-api-key-AxwYC7')
+        const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
 
-        const grapescrapeFunction = new lambda.Function(this, 'GrapeScrapeFunction', {
-            functionName: 'grapescrape-cdk',
+        const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
+            tableName: 'grapescrape-wine-stock',
+            partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        wineStockTable.addGlobalSecondaryIndex({
+            indexName: 'GSI1',
+            partitionKey: { name: 'gsi1pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
+        });
+
+        const assessmentDeadLetterQueue = new sqs.Queue(this, 'AssessmentDeadLetterQueue', {
+            queueName: 'grapescrape-assessment-dlq',
+            retentionPeriod: Duration.days(14),
+        });
+
+        const assessmentQueue = new sqs.Queue(this, 'AssessmentQueue', {
+            queueName: 'grapescrape-assessment-queue',
+            visibilityTimeout: Duration.minutes(12),
+            retentionPeriod: Duration.days(4),
+            deadLetterQueue: {
+                queue: assessmentDeadLetterQueue,
+                maxReceiveCount: 5,
+            },
+        });
+
+        const retailerScraperFunction = new NodejsFunction(this, 'RetailerScraperFunction', {
+            functionName: 'grapescrape-retailer-scraper',
             runtime: lambda.Runtime.NODEJS_24_X,
             architecture: lambda.Architecture.ARM_64,
-            handler: 'src/app/lambda.handler',
-            code: lambda.Code.fromAsset('.', {
-                bundling: {
-                    image: lambda.Runtime.NODEJS_24_X.bundlingImage,
-                    command: [
-                        'bash',
-                        '-c',
-                        [
-                            'cp -R src package.json package-lock.json /asset-output/',
-                            'cd /asset-output',
-                            'npm ci --omit=dev --cache /tmp/.npm'
-                        ].join(' && ')
-                    ]
-                },
-                exclude: [
-                    'infra',
-                    '.git',
-                    'node_modules',
-                    'localStore.json',
-                    'testStore.json'
-                ]
-            }),
+            entry: path.join(__dirname, '../../src/workers/retailer-scraper/index.js'),
+            handler: 'handler',
             memorySize: 256,
-            timeout: Duration.seconds(600),
+            timeout: Duration.minutes(10),
             environment: {
-                STORE_BUCKET: "grapescrape-668528910170-eu-west-2-an",
-                STORE_KEY: "wineStore.json",
-                SNS_TOPIC_ARN: "arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts",
-                OPENAI_API_KEY_NAME: openAiApiKeySecret.secretName,
-                OPENAI_MODEL: "gpt-5.5-2026-04-23",
-                ASSESSMENT_CACHE_KEY: "assessments.json"
-            }
+                WINE_STOCK_TABLE_NAME: wineStockTable.tableName,
+                ASSESSMENT_QUEUE_URL: assessmentQueue.queueUrl,
+                SNS_TOPIC_ARN: alertsTopic.topicArn,
+            },
         });
 
-        stateBucket.grantReadWrite(grapescrapeFunction);
-        alertsTopic.grantPublish(grapescrapeFunction);
-        openAiApiKeySecret.grantRead(grapescrapeFunction);
+        wineStockTable.grantReadWriteData(retailerScraperFunction);
+        assessmentQueue.grantSendMessages(retailerScraperFunction);
+        alertsTopic.grantPublish(retailerScraperFunction);
 
-        const schedulerRole = new iam.Role(this, 'GrapeScrapeSchedulerRole', {
-            assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com')
-        });
-
-        grapescrapeFunction.grantInvoke(schedulerRole);
-
-        new scheduler.CfnSchedule(this, 'GrapeScrapeSchedule', {
-            name: 'grapescrape-cdk-every-3-hours',
-            flexibleTimeWindow: { mode: 'OFF' },
-            scheduleExpression: 'rate(3 hours)',
-            target: {
-                arn: grapescrapeFunction.functionArn,
-                roleArn: schedulerRole.roleArn,
-                input: JSON.stringify({}),
-                retryPolicy: {
-                    maximumRetryAttempts: 2,
-                    maximumEventAgeInSeconds: 3600
-                }
-            }
-        });
+        // TODO: Enable scheduler after data migration is complete
+        //
+        // const schedulerRole = new iam.Role(this, 'GrapeScrapeSchedulerRole', {
+        //     assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com')
+        // });
+        //
+        // grapescrapeFunction.grantInvoke(schedulerRole);
+        //
+        // new scheduler.CfnSchedule(this, 'GrapeScrapeSchedule', {
+        //     name: 'grapescrape-cdk-every-3-hours',
+        //     flexibleTimeWindow: { mode: 'OFF' },
+        //     scheduleExpression: 'rate(3 hours)',
+        //     target: {
+        //         arn: grapescrapeFunction.functionArn,
+        //         roleArn: schedulerRole.roleArn,
+        //         input: JSON.stringify({}),
+        //         retryPolicy: {
+        //             maximumRetryAttempts: 2,
+        //             maximumEventAgeInSeconds: 3600
+        //         }
+        //     }
+        // });
     }
 }

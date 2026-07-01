@@ -21,6 +21,9 @@
   ],
   "scripts": {
     "cdk": "npm --workspace infra run cdk",
+    "cdk:synth": "npm --workspace infra run synth",
+    "cdk:diff": "npm --workspace infra run diff",
+    "cdk:deploy": "npm --workspace infra run deploy",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present"
   },
