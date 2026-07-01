@@ -1,0 +1,10 @@
+{
+  "name": "@grapescrape/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@grapescrape/domain": "1.0.0",
+    "@grapescrape/state": "1.0.0"
+  }
+}
