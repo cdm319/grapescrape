@@ -1,6 +1,6 @@
 import { parse } from "csv-parse/sync";
-import { normaliseCurrency, normaliseName, normaliseVintage } from "@grapescrape/domain/wine/normalisers.js";
-import { createSourceHash } from "@grapescrape/domain/wine/createSourceHash.js";
+import { normaliseCurrency, normaliseName, normaliseVintage } from "@grapescrape/domain/wine/normalisers";
+import { createSourceHash } from "@grapescrape/domain/wine/createSourceHash";
 import { buildRetailerURLs } from "./retailers/retailerUrls.js";
 
 /**

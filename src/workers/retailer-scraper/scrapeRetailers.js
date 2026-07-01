@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { diffWines } from "@grapescrape/domain/wine/diffWines";
 import { getCurrentWines } from "./getCurrentWines.js";
 
