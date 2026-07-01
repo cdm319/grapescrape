@@ -28,7 +28,7 @@ export const scrapeRetailers = async ({ retailerId, store, notifier, queue }) =>
     console.log(`${ added.length } new wines, ${ removed.length } removed wines from previous scrape`);
 
     // update store with current run
-    await store.upsertWineListings({ retailerId, current });
+    await store.upsertWineListings({ retailerId, wines: current });
     console.log(`Updated store with current listings`);
 
     // mark removed wines as missing

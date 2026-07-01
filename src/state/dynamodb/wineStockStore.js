@@ -28,16 +28,16 @@ export const createWineStockStore = client => {
             return items;
         },
 
-        async upsertWineListing(wine) {
+        async upsertWineListing({ retailerId, wine }) {
             await client.send(new PutCommand({
                 TableName: tableName,
-                Item: createWineListing(wine)
+                Item: createWineListing({ retailerId, wine })
             }))
         },
 
-        async upsertWineListings(wines) {
+        async upsertWineListings({ retailerId, wines }) {
             await Promise.all(wines.map(wine =>
-                this.upsertWineListing(wine))
+                this.upsertWineListing({ retailerId, wine }))
             );
         },
 
@@ -71,17 +71,17 @@ export const createWineStockStore = client => {
 
 const formatPrice = price => String(Number(price ?? 0).toFixed(2)).padStart(9, '0');
 
-const createWineListing = wine => {
+const createWineListing = ({ retailerId, wine }) => {
     const now = new Date().toISOString();
 
     return {
-        pk: `RETAILER#${ wine.retailerId }`,
+        pk: `RETAILER#${ retailerId }`,
         sk: `LISTING#${ wine.id }`,
 
         entityType: 'RetailerListing',
 
-        retailerId: wine.retailerId,
-        sourceKey: `retailer:${ wine.retailerId }:${ wine.id }`,
+        retailerId: retailerId,
+        sourceKey: `retailer:${ retailerId }:${ wine.id }`,
 
         id: wine.id,
         name: wine.name,
@@ -99,7 +99,7 @@ const createWineListing = wine => {
         firstSeenAt: wine.firstSeenAt ?? now,
         lastSeenAt: now,
 
-        gsi1pk: `RETAILER#${ wine.retailerId }#CURRENT`,
+        gsi1pk: `RETAILER#${ retailerId }#CURRENT`,
         gsi1sk: `PRICE#${ formatPrice(wine.price) }#LISTING#${ wine.id }`
     };
 }
