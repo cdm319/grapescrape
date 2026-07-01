@@ -12,9 +12,12 @@
   "type": "module",
   "workspaces": [
     "infra",
+    "src/api",
     "src/domain",
+    "src/state",
+    "src/ui",
     "src/workers/retailer-scraper",
-    "src/state"
+    "src/workers/wine-assessor"
   ],
   "scripts": {
     "cdk": "npm --workspace infra run cdk",
