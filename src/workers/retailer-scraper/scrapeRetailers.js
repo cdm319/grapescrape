@@ -1,5 +1,5 @@
 import { diffWines } from "@grapescrape/domain/wine/diffWines";
-import { getCurrentWines } from "@grapescrape/domain/retailers";
+import { getCurrentWines } from "@grapescrape/domain/retailers/getCurrentWines";
 
 /**
  * Initiates the scraping of a given retailer's wines, then compares to previous listings, and orchestrates
