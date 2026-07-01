@@ -5,15 +5,16 @@ import { createWineStockStore } from "../../state/dynamodb/wineStockStore.js";
 import { createSnsNotifier } from "../../state/sns/snsNotifier.js";
 import { createAssessmentQueue } from "../../state/sqs/assessmentQueue.js";
 
-// instantiate AWS integrations for reuse
+// instantiate AWS integrations outside handler for reuse
 const wineStockStore = createWineStockStore(documentClient);
 const notifier = createSnsNotifier();
 const assessmentQueue = createAssessmentQueue(sqsClient);
 
 /**
  * Entry point for the retailer scraper Lambda function.
+ *
  * @param event
- * @returns {Promise<{statusCode: number, body: string}>}
+ * @returns object {statusCode: number, body: string}
  */
 export const handler = async (event) => {
     try {
