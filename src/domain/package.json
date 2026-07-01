@@ -5,10 +5,6 @@
   "type": "module",
   "exports": {
     "./assessment/*": "./assessment/*.js",
-    "./retailers/*": "./retailers/*.js",
     "./wine/*": "./wine/*.js"
-  },
-  "dependencies": {
-    "csv-parse": "^7.0.0"
   }
 }

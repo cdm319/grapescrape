@@ -6,6 +6,7 @@
   "main": "index.js",
   "dependencies": {
     "@grapescrape/domain": "1.0.0",
-    "@grapescrape/state": "1.0.0"
+    "@grapescrape/state": "1.0.0",
+    "csv-parse": "^7.0.0"
   }
 }
