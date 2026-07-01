@@ -10,6 +10,12 @@
   "private": true,
   "author": "Chris Matthews <chris@matthews.digital>",
   "type": "module",
+  "workspaces": [
+    "infra",
+    "src/domain",
+    "src/workers/retailer-scraper",
+    "src/state"
+  ],
   "scripts": {
     "cdk": "npm --workspace infra run cdk",
     "test": "npm run test --workspaces --if-present",

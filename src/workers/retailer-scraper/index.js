@@ -1,9 +1,9 @@
+import { documentClient } from "@grapescrape/state/dynamodb/client";
+import { sqsClient } from "@grapescrape/state/sqs/client";
+import { createWineStockStore } from "@grapescrape/state/dynamodb/wineStockStore";
+import { createSnsNotifier } from "@grapescrape/state/sns/snsNotifier";
+import { createAssessmentQueue } from "@grapescrape/state/sqs/assessmentQueue";
 import { scrapeRetailers } from "./scrapeRetailers.js";
-import { documentClient } from "../../state/dynamodb/client.js";
-import { sqsClient } from "../../state/sqs/client.js";
-import { createWineStockStore } from "../../state/dynamodb/wineStockStore.js";
-import { createSnsNotifier } from "../../state/sns/snsNotifier.js";
-import { createAssessmentQueue } from "../../state/sqs/assessmentQueue.js";
 
 // instantiate AWS integrations outside handler for reuse
 const wineStockStore = createWineStockStore(documentClient);
