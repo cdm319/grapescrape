@@ -1,6 +1,7 @@
-import { normaliseCurrency, normaliseName, normaliseVintage } from "../wine/normalisers.js";
-import { buildRetailerURLs } from "./retailerUrls.js";
 import { parse } from "csv-parse/sync";
+import { buildRetailerURLs } from "./retailerUrls.js";
+import { normaliseCurrency, normaliseName, normaliseVintage } from "../wine/normalisers.js";
+import { createSourceHash } from "../wine/createSourceHash.js";
 
 /**
  * Fetches wine data for a given retailer from multiple URLs.
@@ -29,16 +30,25 @@ const fetchCsv = async url => {
     const csv = await response.text();
     const records = parseCsv(csv);
 
-    return records.map(w => ({
-        id: w.product_code,
-        region: w.origin,
-        name: normaliseName(w.product_title),
-        vintage: normaliseVintage(w.vintage),
-        price: normaliseCurrency(w.price),
-        grape: w.grape,
-        alcohol: w.alcohol,
-        description: w.description
-    }));
+    return records.map(toWine);
+};
+
+const toWine = record => {
+    const wine = {
+        id: record.product_code,
+        region: record.origin,
+        name: normaliseName(record.product_title),
+        vintage: normaliseVintage(record.vintage),
+        price: normaliseCurrency(record.price),
+        grape: record.grape,
+        alcohol: record.alcohol,
+        description: record.description
+    };
+
+    return {
+        ...wine,
+        sourceHash: createSourceHash(wine)
+    };
 };
 
 /**
