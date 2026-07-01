@@ -4,8 +4,7 @@ const SOURCE_HASH_FIELDS = [
     'name',
     'vintage',
     'region',
-    'alcohol',
-    'description'
+    'alcohol'
 ];
 
 /**
@@ -16,11 +15,12 @@ const SOURCE_HASH_FIELDS = [
  * reassessment/OpenAI spend.
  *
  * Deliberately excluded for now:
- * - price: useful for display, but should not change the flavour assessment
- * - grape: not included in the original assessment cache hash
+ * - price: does not change the flavour assessment
+ * - grape: too vulnerable to change
+ * - description: too vulnerable to change
  *
  * @param wine
- * @returns string
+ * @returns string - the hash of the wine data
  */
 export const createSourceHash = wine => {
     const source = Object.fromEntries(
