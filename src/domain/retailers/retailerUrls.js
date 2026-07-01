@@ -6,7 +6,13 @@ import { buildTWSUrls } from "./tws.js";
  * @param retailerId
  * @returns array [ string ] of URLs to fetch
  */
-export const buildRetailerURLs = retailerId => retailerURLBuilders[retailerId]();
+export const buildRetailerURLs = retailerId => {
+    const buildUrls = retailerURLBuilders[retailerId];
+
+    if (!buildUrls) throw new Error(`Unsupported retailer: ${ retailerId }`);
+
+    return buildUrls();
+}
 
 // function map of retailer IDs to URL builders
 const retailerURLBuilders = {

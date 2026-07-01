@@ -1,9 +1,8 @@
 import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
-const tableName = process.env.WINE_STOCK_TABLE_NAME;
-
-export const createWineStockStore = client => {
+export const createWineStockStore = (client, tableName = process.env.WINE_STOCK_TABLE_NAME) => {
     if (!client) throw new Error('DynamoDB client is required');
+    if (!tableName) throw new Error('WINE_STOCK_TABLE_NAME is required');
 
     return {
         async listCurrentWinesByRetailer(retailerId) {
