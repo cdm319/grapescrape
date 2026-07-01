@@ -2,10 +2,6 @@
   "name": "grapescrape",
   "version": "1.0.0",
   "description": "Scrape and alert to new wine additions at selected retailers",
-  "homepage": "https://github.com/cdm319/grapescrape#readme",
-  "bugs": {
-    "url": "https://github.com/cdm319/grapescrape/issues"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cdm319/grapescrape.git"
@@ -15,28 +11,11 @@
   "author": "Chris Matthews <chris@matthews.digital>",
   "type": "module",
   "scripts": {
-    "local": "node src/app/local.js",
-    "local:test": "node src/app/test.js",
-    "cdk": "cdk --app 'node infra/bin/grapescrape.js'",
-    "cdk:synth": "cdk synth --app 'node infra/bin/grapescrape.js'",
-    "cdk:diff": "cdk diff --app 'node infra/bin/grapescrape.js'",
-    "cdk:deploy": "cdk deploy --app 'node infra/bin/grapescrape.js'",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1053.0",
-    "@aws-sdk/client-secrets-manager": "^3.1060.0",
-    "@aws-sdk/client-sns": "^3.1053.0",
-    "aws-cdk-lib": "^2.257.0",
-    "constructs": "^10.6.0",
-    "csv-parse": "^6.1.0",
-    "openai": "^6.41.0"
+    "cdk": "npm --workspace infra run cdk",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.7",
-    "aws-cdk": "^2.1124.1",
-    "vitest": "^4.1.7"
+    "esbuild": "^0.28.1"
   }
 }
