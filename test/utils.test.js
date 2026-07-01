@@ -7,7 +7,7 @@ import {
     normaliseVintage,
     parseCsv,
     stripFirstLine
-} from '../src/utils.js';
+} from '../src/domain/utils.js';
 
 describe('stripFirstLine', () => {
     it('should remove the first line from a string', () => {
