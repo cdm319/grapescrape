@@ -1,4 +1,4 @@
-import { PutCommand, UpdateCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const tableName = 'wine-stock';
 
@@ -16,7 +16,7 @@ export const createWineStockStore = client => {
                     IndexName: 'GSI1',
                     KeyConditionExpression: 'gsi1pk = :pk',
                     ExpressionAttributeValues: {
-                        ':pk': `RETAILER#${retailerId}#CURRENT`,
+                        ':pk': `RETAILER#${ retailerId }#CURRENT`,
                     },
                     ExclusiveStartKey: exclusiveStartKey,
                 }));
@@ -45,8 +45,8 @@ export const createWineStockStore = client => {
             await client.send(new UpdateCommand({
                 TableName: tableName,
                 Key: {
-                    pk: `RETAILER#${retailerId}`,
-                    sk: `LISTING#${wineId}`,
+                    pk: `RETAILER#${ retailerId }`,
+                    sk: `LISTING#${ wineId }`,
                 },
                 UpdateExpression: [
                     'SET isCurrent = :false',
@@ -75,13 +75,13 @@ const createWineListing = wine => {
     const now = new Date().toISOString();
 
     return {
-        pk: `RETAILER#${wine.retailerId}`,
-        sk: `LISTING#${wine.id}`,
+        pk: `RETAILER#${ wine.retailerId }`,
+        sk: `LISTING#${ wine.id }`,
 
         entityType: 'RetailerListing',
 
         retailerId: wine.retailerId,
-        sourceKey: `retailer:${wine.retailerId}:${wine.id}`,
+        sourceKey: `retailer:${ wine.retailerId }:${ wine.id }`,
 
         id: wine.id,
         name: wine.name,
@@ -99,7 +99,7 @@ const createWineListing = wine => {
         firstSeenAt: wine.firstSeenAt ?? now,
         lastSeenAt: now,
 
-        gsi1pk: `RETAILER#${wine.retailerId}#CURRENT`,
-        gsi1sk: `PRICE#${formatPrice(wine.price)}#LISTING#${wine.id}`
+        gsi1pk: `RETAILER#${ wine.retailerId }#CURRENT`,
+        gsi1sk: `PRICE#${ formatPrice(wine.price) }#LISTING#${ wine.id }`
     };
 }

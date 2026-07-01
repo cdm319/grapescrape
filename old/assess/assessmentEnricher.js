@@ -1,7 +1,20 @@
-import { ASSESSMENT_VERSION, createAssessmentSourceHash, isCachedAssessmentValid, shouldHighlightAssessment } from './assessmentCache.js';
+import {
+    ASSESSMENT_VERSION,
+    createAssessmentSourceHash,
+    isCachedAssessmentValid,
+    shouldHighlightAssessment
+} from './assessmentCache.js';
 import { mapWithConcurrency } from './concurrency.js';
 
-export const createAssessmentEnricher = ({ store, provider, palateProfile, model, assessmentVersion = ASSESSMENT_VERSION, maxAssessmentsPerRun = 20, assessmentConcurrency = 10 } = {}) => {
+export const createAssessmentEnricher = ({
+                                             store,
+                                             provider,
+                                             palateProfile,
+                                             model,
+                                             assessmentVersion = ASSESSMENT_VERSION,
+                                             maxAssessmentsPerRun = 20,
+                                             assessmentConcurrency = 10
+                                         } = {}) => {
     if (!store) throw new Error('Assessment store is required');
     if (!provider) throw new Error('Assessment provider is required');
     if (!palateProfile) throw new Error('Palate profile is required');
@@ -20,7 +33,12 @@ export const createAssessmentEnricher = ({ store, provider, palateProfile, model
                 const sourceHash = createAssessmentSourceHash(wine);
                 const cached = updatedCache[wine.id];
 
-                if (isCachedAssessmentValid({ cached, sourceHash, palateProfileVersion: palateProfile.version, assessmentVersion })) {
+                if (isCachedAssessmentValid({
+                    cached,
+                    sourceHash,
+                    palateProfileVersion: palateProfile.version,
+                    assessmentVersion
+                })) {
                     continue;
                 }
 
@@ -47,7 +65,7 @@ export const createAssessmentEnricher = ({ store, provider, palateProfile, model
                 assessmentConcurrency,
                 async ({ wine, sourceHash }) => {
                     try {
-                        console.log(`Sending wine ${wine.id} for assessment.`);
+                        console.log(`Sending wine ${ wine.id } for assessment.`);
 
                         const assessment = await provider.assessWine({ wine, palateProfile });
 
@@ -65,7 +83,7 @@ export const createAssessmentEnricher = ({ store, provider, palateProfile, model
                             },
                         };
                     } catch (error) {
-                        console.error(`Error assessing wine ${wine.id}`, error);
+                        console.error(`Error assessing wine ${ wine.id }`, error);
 
                         return {
                             ok: false,

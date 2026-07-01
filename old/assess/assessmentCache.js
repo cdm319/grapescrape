@@ -17,7 +17,12 @@ export const createAssessmentSourceHash = wine => {
         .digest('hex');
 };
 
-export const isCachedAssessmentValid = ({ cached, sourceHash, palateProfileVersion, assessmentVersion = ASSESSMENT_VERSION }) => {
+export const isCachedAssessmentValid = ({
+                                            cached,
+                                            sourceHash,
+                                            palateProfileVersion,
+                                            assessmentVersion = ASSESSMENT_VERSION
+                                        }) => {
     if (!cached) return false;
 
     return cached.sourceHash === sourceHash &&

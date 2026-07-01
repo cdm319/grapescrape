@@ -1,18 +1,18 @@
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 
 const sns = new SNSClient({});
 
-export const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
+export const formatWine = wine => `${ wine.name } ${ wine.vintage } - £${ wine.price }`;
 
 const formatHighlightedMatch = ({ wine, assessment }) => {
     const lines = [];
 
-    lines.push(`+ ${formatWine(wine)}`);
-    lines.push(`  ${assessment.fit} match, ${assessment.confidence} confidence`);
+    lines.push(`+ ${ formatWine(wine) }`);
+    lines.push(`  ${ assessment.fit } match, ${ assessment.confidence } confidence`);
 
-    if (assessment.summary) lines.push(`  ${assessment.summary}`);
-    if (assessment.reasons?.length) lines.push(`  Why: ${assessment.reasons.slice(0, 2).join('; ')}`);
-    if (assessment.cautions?.length) lines.push(`  Caution: ${assessment.cautions.slice(0, 1).join('; ')}`);
+    if (assessment.summary) lines.push(`  ${ assessment.summary }`);
+    if (assessment.reasons?.length) lines.push(`  Why: ${ assessment.reasons.slice(0, 2).join('; ') }`);
+    if (assessment.cautions?.length) lines.push(`  Caution: ${ assessment.cautions.slice(0, 1).join('; ') }`);
 
     return lines.join('\n');
 };
@@ -24,25 +24,25 @@ export const buildMessage = ({ added, removed, current, highlightedMatches = [] 
     lines.push('')
 
     if (highlightedMatches.length) {
-        lines.push(`High Confidence Matches (${highlightedMatches.length}):`);
+        lines.push(`High Confidence Matches (${ highlightedMatches.length }):`);
         highlightedMatches.forEach(match => lines.push(formatHighlightedMatch(match)));
         lines.push('');
     }
 
     if (added.length) {
-        lines.push(`New Wines (${added.length}):`);
-        added.forEach(wine => lines.push(`+ ${formatWine(wine)}`));
+        lines.push(`New Wines (${ added.length }):`);
+        added.forEach(wine => lines.push(`+ ${ formatWine(wine) }`));
         lines.push('');
     }
 
     if (removed.length) {
-        lines.push(`Removed Wines (${removed.length}):`);
-        removed.forEach(wine => lines.push(`- ${formatWine(wine)}`));
+        lines.push(`Removed Wines (${ removed.length }):`);
+        removed.forEach(wine => lines.push(`- ${ formatWine(wine) }`));
         lines.push('');
     }
 
-    lines.push(`Current Stock (${current.length}):`);
-    current.forEach(wine => lines.push(`${formatWine(wine)}`));
+    lines.push(`Current Stock (${ current.length }):`);
+    current.forEach(wine => lines.push(`${ formatWine(wine) }`));
 
     return lines.join('\n');
 };

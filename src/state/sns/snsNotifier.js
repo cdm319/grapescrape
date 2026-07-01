@@ -1,8 +1,8 @@
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 
 const sns = new SNSClient({});
 
-export const formatWine = wine => `${wine.name} ${wine.vintage} - £${wine.price}`;
+export const formatWine = wine => `${ wine.name } ${ wine.vintage } - £${ wine.price }`;
 
 export const buildMessage = ({ added, removed, current }) => {
     const lines = [];
@@ -11,19 +11,19 @@ export const buildMessage = ({ added, removed, current }) => {
     lines.push('');
 
     if (added.length) {
-        lines.push(`New Wines (${added.length}):`);
-        added.forEach(wine => lines.push(`+ ${formatWine(wine)}`));
+        lines.push(`New Wines (${ added.length }):`);
+        added.forEach(wine => lines.push(`+ ${ formatWine(wine) }`));
         lines.push('');
     }
 
     if (removed.length) {
-        lines.push(`Removed Wines (${removed.length}):`);
-        removed.forEach(wine => lines.push(`- ${formatWine(wine)}`));
+        lines.push(`Removed Wines (${ removed.length }):`);
+        removed.forEach(wine => lines.push(`- ${ formatWine(wine) }`));
         lines.push('');
     }
 
-    lines.push(`Current Stock (${current.length}):`);
-    current.forEach(wine => lines.push(`${formatWine(wine)}`));
+    lines.push(`Current Stock (${ current.length }):`);
+    current.forEach(wine => lines.push(`${ formatWine(wine) }`));
 
     return lines.join('\n');
 };
