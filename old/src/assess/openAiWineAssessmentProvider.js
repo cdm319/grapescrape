@@ -3,7 +3,10 @@ import { getOpenAiApiKey } from "../secretsManager.js";
 import { wineAssessmentSchema } from "./wineAssessmentSchema.js";
 import { wineAssessmentPrompt } from "./wineAssessmentPrompt.js";
 
-export const createOpenAiWineAssessmentProvider = ({ model = process.env.OPENAI_MODEL, getApiKey = getOpenAiApiKey } = {}) => {
+export const createOpenAiWineAssessmentProvider = ({
+                                                       model = process.env.OPENAI_MODEL,
+                                                       getApiKey = getOpenAiApiKey
+                                                   } = {}) => {
     let existingClient;
 
     const getClient = async () => {
@@ -18,11 +21,11 @@ export const createOpenAiWineAssessmentProvider = ({ model = process.env.OPENAI_
         async assessWine({ wine, palateProfile }) {
             const client = await getClient();
 
-            console.log(`Sent wine ${wine.id} to OpenAI for assessment.`);
+            console.log(`Sent wine ${ wine.id } to OpenAI for assessment.`);
 
             const response = await client.responses.create({
                 model,
-                prompt_cache_key: `grapescrape-wine-assessment-profile-v${palateProfile.version}`,
+                prompt_cache_key: `grapescrape-wine-assessment-profile-v${ palateProfile.version }`,
                 prompt_cache_retention: '24h',
                 input: [
                     {
@@ -54,7 +57,7 @@ export const createOpenAiWineAssessmentProvider = ({ model = process.env.OPENAI_
                 },
             });
 
-            console.log(`Received assessment for wine ${wine.id} from OpenAI.`);
+            console.log(`Received assessment for wine ${ wine.id } from OpenAI.`);
 
             return JSON.parse(response.output_text);
         },

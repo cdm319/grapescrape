@@ -1,4 +1,4 @@
-import { parseCsv, normaliseName, normaliseCurrency, normaliseVintage } from "../utils.js";
+import { normaliseCurrency, normaliseName, normaliseVintage, parseCsv } from "../utils.js";
 import { buildURLs } from "./buildURLs.js";
 
 export const fetchCsv = async url => {
@@ -6,21 +6,21 @@ export const fetchCsv = async url => {
 
     const response = await fetch(url);
 
-    if (!response.ok) throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+    if (!response.ok) throw new Error(`Failed to fetch data: ${ response.status } ${ response.statusText }`);
 
     const csv = await response.text();
     const records = parseCsv(csv);
 
     return records.map(w => ({
-        id:      w.product_code,
-        region:  w.origin,
-        name:    normaliseName(w.product_title),
+        id: w.product_code,
+        region: w.origin,
+        name: normaliseName(w.product_title),
         vintage: normaliseVintage(w.vintage),
-        price:   normaliseCurrency(w.price),
+        price: normaliseCurrency(w.price),
 
-        grape:   w.grape,
+        grape: w.grape,
         alcohol: w.alcohol,
-        desc:    w.description
+        desc: w.description
     }));
 };
 
