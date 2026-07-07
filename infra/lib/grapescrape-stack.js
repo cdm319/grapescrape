@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export class GrapeScrapeStack extends Stack {
+export class GrapeScrapeFutureStack extends Stack {
     constructor(scope, id, props) {
         super(scope, id, props);
 
