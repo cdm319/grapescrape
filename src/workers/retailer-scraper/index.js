@@ -4,6 +4,7 @@ import { createWineStockStore } from "@grapescrape/state/dynamodb/wineStockStore
 import { createSnsNotifier } from "@grapescrape/state/sns/snsNotifier";
 import { createAssessmentQueue } from "@grapescrape/state/sqs/assessmentQueue";
 import { scrapeRetailers } from "./scrapeRetailers.js";
+import { resolveRetailerId } from "./resolveRetailerId.js";
 
 // instantiate AWS integrations outside handler for reuse
 const wineStockStore = createWineStockStore(documentClient);
@@ -20,8 +21,10 @@ export const handler = async (event) => {
     try {
         console.log('GrapeScrape retailer scraper starting.');
 
+        const retailerId = resolveRetailerId(event);
+
         const results = await scrapeRetailers({
-            retailerId: 'tws',
+            retailerId,
             store: wineStockStore,
             notifier,
             queue: assessmentQueue
