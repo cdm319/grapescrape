@@ -1,4 +1,5 @@
-import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -18,6 +19,28 @@ export class GrapeScrapeFutureStack extends Stack {
         Tags.of(this).add('Project', 'grapescrape');
 
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
+
+        const userPool = new cognito.UserPool(this, 'AppIdentityUserPool', {
+            userPoolName: 'grapescrape-user-pool',
+            signInAliases: {
+                email: true,
+            },
+            selfSignUpEnabled: false,
+            mfa: cognito.Mfa.OFF,
+            accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        const userPoolClient = new cognito.UserPoolClient(this, 'AppIdentityUserPoolClient', {
+            userPool,
+            userPoolClientName: 'grapescrape-user-pool-client',
+            generateSecret: false,
+            authFlows: {
+                userSrp: true,
+            },
+            disableOAuth: true,
+            preventUserExistenceErrors: true,
+        });
 
         const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
             tableName: 'grapescrape-wine-stock',
@@ -66,5 +89,20 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
+
+        new CfnOutput(this, 'AppIdentityUserPoolId', {
+            value: userPool.userPoolId,
+            description: 'Cognito user pool ID for GrapeScrape app identity.',
+        });
+
+        new CfnOutput(this, 'AppIdentityUserPoolClientId', {
+            value: userPoolClient.userPoolClientId,
+            description: 'Cognito user pool client ID for future GrapeScrape app/API integrations.',
+        });
+
+        new CfnOutput(this, 'AppIdentityUserSubLookup', {
+            value: `After manually creating a user, retrieve their Cognito sub with: aws cognito-idp admin-get-user --user-pool-id ${userPool.userPoolId} --username <email> --query 'UserAttributes[?Name==\`sub\`].Value | [0]' --output text`,
+            description: 'Manual command for retrieving a Cognito user sub from an email username.',
+        });
     }
 }
