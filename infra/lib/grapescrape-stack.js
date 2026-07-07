@@ -1,4 +1,4 @@
-import { CfnOutput, Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -117,13 +117,5 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
-
-        new CfnOutput(this, 'UserDataTableName', {
-            value: userDataTable.tableName,
-        });
-
-        new CfnOutput(this, 'AssessmentsTableName', {
-            value: assessmentsTable.tableName,
-        });
     }
 }
