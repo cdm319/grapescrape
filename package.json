@@ -25,9 +25,11 @@
     "cdk:diff": "npm --workspace infra run diff",
     "cdk:deploy": "npm --workspace infra run deploy",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
     "esbuild": "^0.28.1",
     "vitest": "^4.1.10"
   }

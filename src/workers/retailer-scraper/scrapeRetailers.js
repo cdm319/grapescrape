@@ -1,19 +1,19 @@
 import crypto from "node:crypto";
 import { diffWines } from "@grapescrape/domain/wine/diffWines";
-import { getCurrentWines } from "./getCurrentWines.js";
+import { getCurrentWines as defaultGetCurrentWines } from "./getCurrentWines.js";
 
 /**
  * Initiates the scraping of a given retailer's wines, then compares to previous listings, and orchestrates
  * next steps - persisting the data to storage, sending notifications, and enqueuing new assessment requests.
  *
- * @param context - object containing retailerId, store, notifier, and queue
+ * @param context - object containing retailerId, store, notifier, queue, and optional getCurrentWines dependency
  * @param context.retailerId - the retailer ID to scrape
  * @param context.store - the store to persist the scraped data
  * @param context.notifier - the notifier to send notifications
  * @param context.queue - the queue to enqueue new assessment requests
  * @returns object { total: number, added: number, removed: number }
  */
-export const scrapeRetailers = async ({ retailerId, store, notifier, queue }) => {
+export const scrapeRetailers = async ({ retailerId, store, notifier, queue, getCurrentWines = defaultGetCurrentWines }) => {
     if (!store) throw new Error('Store is required');
     if (!notifier) throw new Error('Notifier is required');
     if (!queue) throw new Error('Queue is required');
