@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "main": "index.js",
+  "scripts": {
+    "test": "node --test ../../../test/workers/retailer-scraper/*.test.js"
+  },
   "dependencies": {
     "@grapescrape/domain": "1.0.0",
     "@grapescrape/state": "1.0.0",
