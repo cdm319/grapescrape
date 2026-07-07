@@ -1,4 +1,4 @@
-import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -40,6 +40,34 @@ export class GrapeScrapeFutureStack extends Stack {
             },
             disableOAuth: true,
             preventUserExistenceErrors: true,
+        });
+
+        const userDataTable = new dynamodb.Table(this, 'UserDataTable', {
+            tableName: 'grapescrape-user-data',
+            partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        const assessmentsTable = new dynamodb.Table(this, 'AssessmentsTable', {
+            tableName: 'grapescrape-assessments',
+            partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        assessmentsTable.addGlobalSecondaryIndex({
+            indexName: 'GSI1',
+            partitionKey: { name: 'gsi1pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
+        });
+
+        assessmentsTable.addGlobalSecondaryIndex({
+            indexName: 'GSI2',
+            partitionKey: { name: 'gsi2pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'gsi2sk', type: dynamodb.AttributeType.STRING },
         });
 
         const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
@@ -89,5 +117,13 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
+
+        new CfnOutput(this, 'UserDataTableName', {
+            value: userDataTable.tableName,
+        });
+
+        new CfnOutput(this, 'AssessmentsTableName', {
+            value: assessmentsTable.tableName,
+        });
     }
 }
