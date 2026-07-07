@@ -1,6 +1,5 @@
 import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as sns from 'aws-cdk-lib/aws-sns';
@@ -67,28 +66,5 @@ export class GrapeScrapeStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
-
-        // TODO: Enable scheduler after data migration is complete
-        //
-        // const schedulerRole = new iam.Role(this, 'GrapeScrapeSchedulerRole', {
-        //     assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com')
-        // });
-        //
-        // grapescrapeFunction.grantInvoke(schedulerRole);
-        //
-        // new scheduler.CfnSchedule(this, 'GrapeScrapeSchedule', {
-        //     name: 'grapescrape-cdk-every-3-hours',
-        //     flexibleTimeWindow: { mode: 'OFF' },
-        //     scheduleExpression: 'rate(3 hours)',
-        //     target: {
-        //         arn: grapescrapeFunction.functionArn,
-        //         roleArn: schedulerRole.roleArn,
-        //         input: JSON.stringify({}),
-        //         retryPolicy: {
-        //             maximumRetryAttempts: 2,
-        //             maximumEventAgeInSeconds: 3600
-        //         }
-        //     }
-        // });
     }
 }
