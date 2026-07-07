@@ -7,7 +7,7 @@
     "cdk": "cdk --app 'node bin/grapescrape.js'",
     "synth": "cdk synth --app 'node bin/grapescrape.js'",
     "diff": "cdk diff --app 'node bin/grapescrape.js'",
-    "deploy": "cdk deploy --app 'node bin/grapescrape.js'"
+    "deploy": "cdk deploy --app 'node bin/grapescrape.js' --require-approval never"
   },
   "devDependencies": {
     "aws-cdk": "^2.1129.0",

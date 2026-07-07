@@ -40,4 +40,4 @@ jobs:
         run: npm run cdk:synth
 
       - name: CDK deploy
-        run: npm run cdk:deploy -- --require-approval never
+        run: npm run cdk:deploy
