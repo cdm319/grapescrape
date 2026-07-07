@@ -42,6 +42,34 @@ export class GrapeScrapeFutureStack extends Stack {
             preventUserExistenceErrors: true,
         });
 
+        const userDataTable = new dynamodb.Table(this, 'UserDataTable', {
+            tableName: 'grapescrape-user-data',
+            partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        const assessmentsTable = new dynamodb.Table(this, 'AssessmentsTable', {
+            tableName: 'grapescrape-assessments',
+            partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        assessmentsTable.addGlobalSecondaryIndex({
+            indexName: 'GSI1',
+            partitionKey: { name: 'gsi1pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
+        });
+
+        assessmentsTable.addGlobalSecondaryIndex({
+            indexName: 'GSI2',
+            partitionKey: { name: 'gsi2pk', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'gsi2sk', type: dynamodb.AttributeType.STRING },
+        });
+
         const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
             tableName: 'grapescrape-wine-stock',
             partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
