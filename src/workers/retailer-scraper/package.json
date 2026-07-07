@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test ../../../test/workers/retailer-scraper/*.test.js"
+    "test": "vitest run --root ../../.. test/workers/retailer-scraper"
   },
   "dependencies": {
     "@grapescrape/domain": "1.0.0",
