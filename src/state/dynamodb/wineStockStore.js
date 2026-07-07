@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 export const createWineStockStore = (client, tableName = process.env.WINE_STOCK_TABLE_NAME) => {
     if (!client) throw new Error('DynamoDB client is required');
@@ -28,9 +28,9 @@ export const createWineStockStore = (client, tableName = process.env.WINE_STOCK_
         },
 
         async upsertWineListing({ retailerId, wine }) {
-            await client.send(new PutCommand({
+            await client.send(new UpdateCommand({
                 TableName: tableName,
-                Item: createWineListing({ retailerId, wine })
+                ...createWineListingUpdate({ retailerId, wine }),
             }))
         },
 
@@ -70,18 +70,14 @@ export const createWineStockStore = (client, tableName = process.env.WINE_STOCK_
 
 const formatPrice = price => String(Number(price ?? 0).toFixed(2)).padStart(9, '0');
 
-const createWineListing = ({ retailerId, wine }) => {
+const createWineListingUpdate = ({ retailerId, wine }) => {
     const now = new Date().toISOString();
-
-    return {
-        pk: `RETAILER#${ retailerId }`,
-        sk: `LISTING#${ wine.id }`,
-
+    const firstSeenAt = wine.firstSeenAt ?? now;
+    const lastSeenAt = wine.lastSeenAt ?? now;
+    const attributes = {
         entityType: 'RetailerListing',
-
         retailerId: retailerId,
         sourceKey: `retailer:${ retailerId }:${ wine.id }`,
-
         id: wine.id,
         name: wine.name,
         region: wine.region,
@@ -90,15 +86,43 @@ const createWineListing = ({ retailerId, wine }) => {
         grape: wine.grape,
         alcohol: wine.alcohol,
         description: wine.description,
-
         sourceHash: wine.sourceHash,
         rawPayload: wine.rawPayload,
-
         isCurrent: true,
-        firstSeenAt: wine.firstSeenAt ?? now,
-        lastSeenAt: now,
-
+        firstSeenAt,
+        lastSeenAt,
         gsi1pk: `RETAILER#${ retailerId }#CURRENT`,
         gsi1sk: `PRICE#${ formatPrice(wine.price) }#LISTING#${ wine.id }`
+    };
+
+    const setExpressions = [];
+    const expressionAttributeNames = {};
+    const expressionAttributeValues = {};
+
+    Object.entries(attributes)
+        .filter(([, value]) => value !== undefined)
+        .forEach(([name, value]) => {
+            const nameKey = `#${ name }`;
+            const valueKey = `:${ name }`;
+
+            expressionAttributeNames[nameKey] = name;
+            expressionAttributeValues[valueKey] = value;
+            setExpressions.push(name === 'firstSeenAt'
+                ? `${ nameKey } = if_not_exists(${ nameKey }, ${ valueKey })`
+                : `${ nameKey } = ${ valueKey }`
+            );
+        });
+
+    return {
+        Key: {
+            pk: `RETAILER#${ retailerId }`,
+            sk: `LISTING#${ wine.id }`,
+        },
+        UpdateExpression: `SET ${ setExpressions.join(', ') } REMOVE #lastMissingAt`,
+        ExpressionAttributeNames: {
+            ...expressionAttributeNames,
+            '#lastMissingAt': 'lastMissingAt',
+        },
+        ExpressionAttributeValues: expressionAttributeValues,
     };
 }
