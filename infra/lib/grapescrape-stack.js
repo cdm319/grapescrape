@@ -1,4 +1,5 @@
 import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -18,6 +19,28 @@ export class GrapeScrapeFutureStack extends Stack {
         Tags.of(this).add('Project', 'grapescrape');
 
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
+
+        const userPool = new cognito.UserPool(this, 'GrapeScrapeUserPool', {
+            userPoolName: 'grapescrape-user-pool',
+            signInAliases: {
+                email: true,
+            },
+            selfSignUpEnabled: false,
+            mfa: cognito.Mfa.OFF,
+            accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+            removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+        const userPoolClient = new cognito.UserPoolClient(this, 'GrapeScrapeUserPoolClient', {
+            userPool,
+            userPoolClientName: 'grapescrape-user-pool-client',
+            generateSecret: false,
+            authFlows: {
+                userSrp: true,
+            },
+            disableOAuth: true,
+            preventUserExistenceErrors: true,
+        });
 
         const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
             tableName: 'grapescrape-wine-stock',
