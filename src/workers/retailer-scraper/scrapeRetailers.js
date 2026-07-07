@@ -49,14 +49,17 @@ export const scrapeRetailers = async ({ retailerId, store, notifier, queue, getC
 
     // add new wines to the queue for assessment
     if (added.length) {
+        const requestedAt = new Date().toISOString();
+
         await queue.enqueueAssessmentRequests(
             added.map(wine => ({
                 requestId: crypto.randomUUID(),
                 source: { type: 'retailer', key: `retailer:${ retailerId }:${ wine.id }` },
-                wine: wine,
+                wineSnapshot: wine,
                 sourceHash: wine.sourceHash,
                 assessmentVersion: 1,
-                requestedAt: new Date().toISOString()
+                requestedAt,
+                reason: 'new_retailer_listing'
             }))
         );
         console.log(`Enqueued ${ added.length } new assessment requests`);

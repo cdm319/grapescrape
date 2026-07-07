@@ -19,6 +19,15 @@ const previousWine = {
     sourceHash: 'hash-missing'
 };
 
+const otherNewWine = {
+    id: 'other-new-wine',
+    name: 'Other New Wine',
+    vintage: 2021,
+    region: 'Tuscany',
+    price: '31.00',
+    sourceHash: 'hash-other-new'
+};
+
 const createContext = ({ previous = [], current = [currentWine] } = {}) => {
     const store = {
         listCurrentWinesByRetailer: vi.fn().mockResolvedValue(previous),
@@ -113,11 +122,28 @@ describe('scrapeRetailers', () => {
             {
                 requestId: expect.any(String),
                 source: { type: 'retailer', key: 'retailer:tws:new-wine' },
-                wine: currentWine,
+                wineSnapshot: currentWine,
                 sourceHash: 'hash-new',
                 assessmentVersion: 1,
-                requestedAt: '2026-01-02T03:04:05.000Z'
+                requestedAt: '2026-01-02T03:04:05.000Z',
+                reason: 'new_retailer_listing'
             }
+        ]);
+
+        expect(addedContext.queue.enqueueAssessmentRequests.mock.calls[0][0][0].wine).toBeUndefined();
+        expect(addedContext.queue.enqueueAssessmentRequests.mock.calls[0][0][0].userId).toBeUndefined();
+    });
+
+    it('uses one requestedAt timestamp per added-wine batch', async () => {
+        const context = createContext({ previous: [], current: [currentWine, otherNewWine] });
+
+        await scrapeRetailers({ retailerId: 'tws', ...context });
+
+        const requests = context.queue.enqueueAssessmentRequests.mock.calls[0][0];
+        expect(requests).toHaveLength(2);
+        expect(requests.map(request => request.requestedAt)).toEqual([
+            '2026-01-02T03:04:05.000Z',
+            '2026-01-02T03:04:05.000Z'
         ]);
     });
 
