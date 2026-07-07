@@ -20,7 +20,7 @@ export class GrapeScrapeFutureStack extends Stack {
 
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
 
-        const userPool = new cognito.UserPool(this, 'AppIdentityUserPool', {
+        const userPool = new cognito.UserPool(this, 'GrapeScrapeUserPool', {
             userPoolName: 'grapescrape-user-pool',
             signInAliases: {
                 email: true,
@@ -31,7 +31,7 @@ export class GrapeScrapeFutureStack extends Stack {
             removalPolicy: RemovalPolicy.RETAIN,
         });
 
-        const userPoolClient = new cognito.UserPoolClient(this, 'AppIdentityUserPoolClient', {
+        const userPoolClient = new cognito.UserPoolClient(this, 'GrapeScrapeUserPoolClient', {
             userPool,
             userPoolClientName: 'grapescrape-user-pool-client',
             generateSecret: false,
@@ -90,17 +90,17 @@ export class GrapeScrapeFutureStack extends Stack {
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
 
-        new CfnOutput(this, 'AppIdentityUserPoolId', {
+        new CfnOutput(this, 'GrapeScrapeUserPoolId', {
             value: userPool.userPoolId,
             description: 'Cognito user pool ID for GrapeScrape app identity.',
         });
 
-        new CfnOutput(this, 'AppIdentityUserPoolClientId', {
+        new CfnOutput(this, 'GrapeScrapeUserPoolClientId', {
             value: userPoolClient.userPoolClientId,
             description: 'Cognito user pool client ID for future GrapeScrape app/API integrations.',
         });
 
-        new CfnOutput(this, 'AppIdentityUserSubLookup', {
+        new CfnOutput(this, 'GrapeScrapeUserSubLookup', {
             value: `After manually creating a user, retrieve their Cognito sub with: aws cognito-idp admin-get-user --user-pool-id ${userPool.userPoolId} --username <email> --query 'UserAttributes[?Name==\`sub\`].Value | [0]' --output text`,
             description: 'Manual command for retrieving a Cognito user sub from an email username.',
         });
