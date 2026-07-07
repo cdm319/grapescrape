@@ -1,4 +1,4 @@
-import { CfnOutput, Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -89,20 +89,5 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
-
-        new CfnOutput(this, 'GrapeScrapeUserPoolId', {
-            value: userPool.userPoolId,
-            description: 'Cognito user pool ID for GrapeScrape app identity.',
-        });
-
-        new CfnOutput(this, 'GrapeScrapeUserPoolClientId', {
-            value: userPoolClient.userPoolClientId,
-            description: 'Cognito user pool client ID for future GrapeScrape app/API integrations.',
-        });
-
-        new CfnOutput(this, 'GrapeScrapeUserSubLookup', {
-            value: `After manually creating a user, retrieve their Cognito sub with: aws cognito-idp admin-get-user --user-pool-id ${userPool.userPoolId} --username <email> --query 'UserAttributes[?Name==\`sub\`].Value | [0]' --output text`,
-            description: 'Manual command for retrieving a Cognito user sub from an email username.',
-        });
     }
 }
