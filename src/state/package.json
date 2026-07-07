@@ -1,0 +1,17 @@
+{
+  "name": "@grapescrape/state",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./dynamodb/*": "./dynamodb/*.js",
+    "./sns/*": "./sns/*.js",
+    "./sqs/*": "./sqs/*.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1077.0",
+    "@aws-sdk/client-sns": "^3.1077.0",
+    "@aws-sdk/client-sqs": "^3.1077.0",
+    "@aws-sdk/lib-dynamodb": "^3.1077.0"
+  }
+}

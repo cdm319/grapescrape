@@ -1,0 +1,12 @@
+{
+  "name": "@grapescrape/retailer-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@grapescrape/domain": "1.0.0",
+    "@grapescrape/state": "1.0.0",
+    "csv-parse": "^7.0.0"
+  }
+}

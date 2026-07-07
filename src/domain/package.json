@@ -1,0 +1,10 @@
+{
+  "name": "@grapescrape/domain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./assessment/*": "./assessment/*.js",
+    "./wine/*": "./wine/*.js"
+  }
+}
