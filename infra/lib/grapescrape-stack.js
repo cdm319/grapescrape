@@ -1,8 +1,10 @@
 import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import path from 'node:path';
@@ -117,5 +119,27 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
+
+        const retailerScraperScheduleRole = new iam.Role(this, 'RetailerScraperScheduleRole', {
+            assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+        });
+
+        retailerScraperFunction.grantInvoke(retailerScraperScheduleRole);
+
+        new scheduler.CfnSchedule(this, 'RetailerScraperSchedule', {
+            name: 'grapescrape-retailer-scraper-every-2-hours',
+            scheduleExpression: 'rate(2 hours)',
+            flexibleTimeWindow: { mode: 'OFF' },
+            state: 'ENABLED',
+            target: {
+                arn: retailerScraperFunction.functionArn,
+                roleArn: retailerScraperScheduleRole.roleArn,
+                input: JSON.stringify({ retailerId: 'tws' }),
+                retryPolicy: {
+                    maximumRetryAttempts: 1,
+                    maximumEventAgeInSeconds: 3600,
+                },
+            },
+        });
     }
 }
