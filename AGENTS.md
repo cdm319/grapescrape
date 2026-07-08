@@ -42,9 +42,9 @@ Use:
 ```bash
 npm install
 npm install <package> --workspace <workspace-name>
-npm run test --workspaces --if-present
-npm --workspace infra run synth
-npm --workspace infra run diff
+npm test
+npm run cdk:synth
+npm run cdk:diff
 ```
 
 Do not run `npm install` inside workspace directories.
