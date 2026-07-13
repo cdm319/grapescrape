@@ -34,10 +34,10 @@ export const buildTWSUrls = () => [
     buildURL({ region: 'ribera', vintageFrom: 2018, vintageTo: 2022 }),
 
     // Tuscany - 2010, 2015, 2016, 2019, 2021, 2022
-    buildURL({ region: 'tuscany', vintageFrom: 2010, vintageTo: 2010 }),
-    buildURL({ region: 'tuscany', vintageFrom: 2015, vintageTo: 2016 }),
-    buildURL({ region: 'tuscany', vintageFrom: 2019, vintageTo: 2019 }),
-    buildURL({ region: 'tuscany', vintageFrom: 2021, vintageTo: 2022 })
+    buildURL({ region: 'tuscany', vintageFrom: 2010, vintageTo: 2010, subregion: '249107' }),
+    buildURL({ region: 'tuscany', vintageFrom: 2015, vintageTo: 2016, subregion: '249107' }),
+    buildURL({ region: 'tuscany', vintageFrom: 2019, vintageTo: 2019, subregion: '249107' }),
+    buildURL({ region: 'tuscany', vintageFrom: 2021, vintageTo: 2022, subregion: '249107' })
 ];
 
 /**
@@ -71,7 +71,7 @@ const REGION_CONTENT_IDS = {
     usa: '1073742871',
     rioja: '1073742747',
     ribera: '1073742748',
-    tuscany: '1073742741',
+    tuscany: '1073742742',
     sa: '1073742739',
     nz: '1073742858'
 };
