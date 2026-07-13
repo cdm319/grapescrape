@@ -30,13 +30,11 @@ describe('processAssessmentBatch', () => {
             .mockResolvedValueOnce({ status: 'completed' });
 
         const result = await processAssessmentBatch({
-            event: {
-                Records: [
-                    createRecord('message-1'),
-                    createRecord('message-2'),
-                    createRecord('message-3'),
-                ],
-            },
+            records: [
+                createRecord('message-1'),
+                createRecord('message-2'),
+                createRecord('message-3'),
+            ],
             assessmentStore: {},
             assessmentProvider: {},
             concurrency: 1,
@@ -61,15 +59,13 @@ describe('processAssessmentBatch', () => {
         });
 
         await processAssessmentBatch({
-            event: {
-                Records: [
-                    createRecord('message-1'),
-                    createRecord('message-2'),
-                    createRecord('message-3'),
-                    createRecord('message-4'),
-                    createRecord('message-5'),
-                ],
-            },
+            records: [
+                createRecord('message-1'),
+                createRecord('message-2'),
+                createRecord('message-3'),
+                createRecord('message-4'),
+                createRecord('message-5'),
+            ],
             assessmentStore: {},
             assessmentProvider: {},
             concurrency: 2,
@@ -92,7 +88,7 @@ describe('processAssessmentBatch', () => {
         });
 
         await processAssessmentBatch({
-            event: { Records: records },
+            records,
             assessmentStore: {},
             assessmentProvider: {},
             processRecord,
@@ -104,11 +100,9 @@ describe('processAssessmentBatch', () => {
 
     it('reports invalid JSON body as a batch item failure through the real record processor', async () => {
         const result = await processAssessmentBatch({
-            event: {
-                Records: [
-                    { messageId: 'message-1', body: '{not-json' },
-                ],
-            },
+            records: [
+                { messageId: 'message-1', body: '{not-json' },
+            ],
             assessmentStore: {
                 getCurrentPalateProfile: vi.fn(),
             },
@@ -128,20 +122,18 @@ describe('processAssessmentBatch', () => {
 
     it('reports missing required message fields as batch item failures', async () => {
         const result = await processAssessmentBatch({
-            event: {
-                Records: [
-                    {
-                        ...createRecord('message-1'),
-                        body: JSON.stringify({
-                            eventType: 'AssessmentRequested',
-                            source: { type: 'retailer', key: 'retailer:tws:message-1' },
-                            wineSnapshot: { id: 'message-1', name: 'Test Wine' },
-                            sourceHash: 'source-hash-message-1',
-                            assessmentVersion: 1,
-                        }),
-                    },
-                ],
-            },
+            records: [
+                {
+                    ...createRecord('message-1'),
+                    body: JSON.stringify({
+                        eventType: 'AssessmentRequested',
+                        source: { type: 'retailer', key: 'retailer:tws:message-1' },
+                        wineSnapshot: { id: 'message-1', name: 'Test Wine' },
+                        sourceHash: 'source-hash-message-1',
+                        assessmentVersion: 1,
+                    }),
+                },
+            ],
             assessmentStore: {
                 getCurrentPalateProfile: vi.fn(),
             },
@@ -161,11 +153,9 @@ describe('processAssessmentBatch', () => {
 
     it('reports missing user ID as a batch item failure', async () => {
         const result = await processAssessmentBatch({
-            event: {
-                Records: [
-                    createRecord('message-1'),
-                ],
-            },
+            records: [
+                createRecord('message-1'),
+            ],
             assessmentStore: {
                 getCurrentPalateProfile: vi.fn(),
             },
@@ -185,11 +175,9 @@ describe('processAssessmentBatch', () => {
 
     it('reports OpenAI provider failures as batch item failures', async () => {
         const result = await processAssessmentBatch({
-            event: {
-                Records: [
-                    createRecord('message-1'),
-                ],
-            },
+            records: [
+                createRecord('message-1'),
+            ],
             assessmentStore: {
                 getCurrentPalateProfile: vi.fn().mockResolvedValue({
                     userId: 'user-1',

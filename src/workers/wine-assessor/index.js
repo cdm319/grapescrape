@@ -10,8 +10,13 @@ export const handler = async event => {
     const records = event?.Records ?? [];
     console.log(`GrapeScrape wine assessor starting with ${ records.length } records.`);
 
+    if (records.length === 0) {
+        console.log('GrapeScrape wine assessor finished with 0 failed records.');
+        return { batchItemFailures: [] };
+    }
+
     const result = await processAssessmentBatch({
-        event,
+        records,
         assessmentStore,
         assessmentProvider,
     });

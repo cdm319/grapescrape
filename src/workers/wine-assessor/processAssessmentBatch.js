@@ -1,7 +1,7 @@
 import { processAssessmentRequest } from './processAssessmentRequest.js';
 
 export const processAssessmentBatch = async ({
-    event,
+    records = [],
     assessmentStore,
     assessmentProvider,
     userId = process.env.DEFAULT_USER_ID,
@@ -10,7 +10,6 @@ export const processAssessmentBatch = async ({
     processRecord = processAssessmentRequest,
     now,
 }) => {
-    const records = event?.Records ?? [];
     const failures = [];
     let nextRecordIndex = 0;
 
