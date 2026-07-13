@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wineAssessmentPrompt } from '@grapescrape/domain/assessment/wineAssessmentPrompt';
 import { wineAssessmentSchema } from '@grapescrape/domain/assessment/wineAssessmentSchema';
-import { createOpenAiWineAssessmentProvider } from '../../../../src/workers/wine-assessor/openai/openAiWineAssessmentProvider.js';
+import { createOpenAiWineAssessmentProvider } from '@grapescrape/wine-assessor/openai/openAiWineAssessmentProvider.js';
 
 const assessment = {
     fit: 'strong',

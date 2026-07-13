@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { wineAssessmentPrompt } from '@grapescrape/domain/assessment/wineAssessmentPrompt';
 import { wineAssessmentSchema } from '@grapescrape/domain/assessment/wineAssessmentSchema';
-import { getOpenAiApiKey } from '../../../secretsManager.js';
+import { getOpenAiApiKey } from '../secretsManager.js';
 
 export const createOpenAiWineAssessmentProvider = ({
     model = process.env.OPENAI_MODEL,
