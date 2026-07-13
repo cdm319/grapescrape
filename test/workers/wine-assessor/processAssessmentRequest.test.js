@@ -19,9 +19,38 @@ const palateProfile = {
 const assessment = {
     fit: 'strong',
     highlight: true,
-    confidence: 0.9,
+    confidence: 'high',
     headline: 'A good match',
     summary: 'Likely to suit the profile.',
+    reasoningMode: 'metadata_plus_description_plus_general_knowledge',
+    reasons: ['Classic region and structure match the palate.'],
+    cautions: [],
+    evidence: [
+        {
+            type: 'direct',
+            source: 'wine.region',
+            text: 'Bordeaux is listed as the wine region.',
+        },
+    ],
+    assumptions: [],
+    palateAlignment: {
+        fruit: 'positive',
+        texture: 'positive',
+        oakAndDevelopment: 'neutral',
+        structure: 'positive',
+        overall: 'strong',
+    },
+    styleProfile: {
+        body: 'medium_plus',
+        fruitRipeness: 'ripe',
+        fruitCharacter: ['black_fruit'],
+        texture: ['polished'],
+        oakInfluence: 'moderate',
+        tannin: 'moderate_plus',
+        acidity: 'balanced',
+        development: 'ready_to_drink',
+        styleTags: ['classic', 'structured'],
+    },
 };
 
 const message = {
