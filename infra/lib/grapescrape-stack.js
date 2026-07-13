@@ -3,8 +3,10 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import path from 'node:path';
@@ -21,6 +23,12 @@ export class GrapeScrapeFutureStack extends Stack {
         Tags.of(this).add('Project', 'grapescrape');
 
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
+        const openAiApiKeySecretName = process.env.GRAPESCRAPE_OPENAI_API_KEY_SECRET_NAME ?? 'grapescrape-openai-api-key';
+        const openAiApiKeySecret = secretsmanager.Secret.fromSecretNameV2(
+            this,
+            'OpenAiApiKeySecret',
+            openAiApiKeySecretName,
+        );
 
         const userPool = new cognito.UserPool(this, 'GrapeScrapeUserPool', {
             userPoolName: 'grapescrape-user-pool',
@@ -119,6 +127,36 @@ export class GrapeScrapeFutureStack extends Stack {
         wineStockTable.grantReadWriteData(retailerScraperFunction);
         assessmentQueue.grantSendMessages(retailerScraperFunction);
         alertsTopic.grantPublish(retailerScraperFunction);
+
+        const wineAssessorFunction = new NodejsFunction(this, 'WineAssessorFunction', {
+            functionName: 'grapescrape-wine-assessor',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/workers/wine-assessor/index.js'),
+            handler: 'handler',
+            memorySize: 256,
+            reservedConcurrentExecutions: 1,
+            timeout: Duration.minutes(10),
+            environment: {
+                ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+                DEFAULT_USER_ID: '5682e224-80d1-7027-767b-0617ac74683f',
+                OPENAI_API_KEY_NAME: openAiApiKeySecretName,
+                OPENAI_MODEL: 'gpt-5.6-terra',
+                OPENAI_REASONING_EFFORT: 'medium',
+                OPENAI_TEXT_VERBOSITY: 'medium',
+            },
+        });
+
+        wineAssessorFunction.addEventSource(new lambdaEventSources.SqsEventSource(assessmentQueue, {
+            batchSize: 10,
+            reportBatchItemFailures: true,
+        }));
+
+        assessmentQueue.grantConsumeMessages(wineAssessorFunction);
+        assessmentsTable.grantReadWriteData(wineAssessorFunction);
+        userDataTable.grantReadData(wineAssessorFunction);
+        openAiApiKeySecret.grantRead(wineAssessorFunction);
 
         const retailerScraperScheduleRole = new iam.Role(this, 'RetailerScraperScheduleRole', {
             assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
