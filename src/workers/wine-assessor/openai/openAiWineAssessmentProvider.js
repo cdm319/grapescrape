@@ -14,12 +14,16 @@ export const createOpenAiWineAssessmentProvider = ({
 
     const getClient = async () => {
         if (!existingClient) {
-            existingClient = getApiKey()
-                .then(apiKey => new OpenAIClient({ apiKey }))
-                .catch(error => {
+            existingClient = (async () => {
+                try {
+                    const apiKey = await getApiKey();
+
+                    return new OpenAIClient({ apiKey });
+                } catch (error) {
                     existingClient = undefined;
                     throw error;
-                });
+                }
+            })();
         }
 
         return existingClient;
