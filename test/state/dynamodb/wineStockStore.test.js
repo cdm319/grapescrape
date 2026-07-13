@@ -203,7 +203,7 @@ describe('createWineStockStore', () => {
                 pk: 'RETAILER#tws',
                 sk: 'LISTING#wine-1'
             },
-            UpdateExpression: 'SET isCurrent = :false lastMissingAt = :missingAt REMOVE gsi1pk, gsi1sk',
+            UpdateExpression: 'SET isCurrent = :false, lastMissingAt = :missingAt REMOVE gsi1pk, gsi1sk',
             ExpressionAttributeValues: {
                 ':false': false,
                 ':missingAt': '2026-01-02T03:04:05.000Z'
