@@ -3,13 +3,10 @@ import { wineAssessmentPrompt } from '@grapescrape/domain/assessment/wineAssessm
 import { wineAssessmentSchema } from '@grapescrape/domain/assessment/wineAssessmentSchema';
 import { getOpenAiApiKey } from '../secretsManager.js';
 
-const defaultReasoningEffort = 'medium';
-const defaultTextVerbosity = 'medium';
-
 export const createOpenAiWineAssessmentProvider = ({
     model = process.env.OPENAI_MODEL,
-    reasoningEffort = process.env.OPENAI_REASONING_EFFORT || defaultReasoningEffort,
-    textVerbosity = process.env.OPENAI_TEXT_VERBOSITY || defaultTextVerbosity,
+    reasoningEffort = process.env.OPENAI_REASONING_EFFORT || 'medium',
+    textVerbosity = process.env.OPENAI_TEXT_VERBOSITY || 'medium',
     getApiKey = getOpenAiApiKey,
     OpenAIClient = OpenAI
 } = {}) => {
