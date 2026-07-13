@@ -5,6 +5,8 @@ import { getOpenAiApiKey } from '../secretsManager.js';
 
 export const createOpenAiWineAssessmentProvider = ({
     model = process.env.OPENAI_MODEL,
+    reasoningEffort = process.env.OPENAI_REASONING_EFFORT || 'medium',
+    textVerbosity = process.env.OPENAI_TEXT_VERBOSITY || 'medium',
     getApiKey = getOpenAiApiKey,
     OpenAIClient = OpenAI
 } = {}) => {
@@ -44,6 +46,9 @@ export const createOpenAiWineAssessmentProvider = ({
 
             const response = await client.responses.create({
                 model,
+                reasoning: {
+                    effort: reasoningEffort
+                },
                 prompt_cache_key: `grapescrape-wine-assessment-profile-v${ palateProfileVersion }`,
                 prompt_cache_retention: '24h',
                 input: [
@@ -67,6 +72,7 @@ export const createOpenAiWineAssessmentProvider = ({
                     }
                 ],
                 text: {
+                    verbosity: textVerbosity,
                     format: {
                         type: 'json_schema',
                         name: 'wine_assessment',
