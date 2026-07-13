@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import {
     buildCompletedAssessmentItem,
-    CompletedAssessmentConflictError,
     createAssessmentStore,
     isCompletedAssessmentConflict,
 } from '@grapescrape/state/dynamodb/assessmentStore';
@@ -173,7 +172,7 @@ describe('createAssessmentStore', () => {
             await store.putCompletedAssessment(buildCompletedAssessmentItem(completedItemInput));
             throw new Error('Expected putCompletedAssessment to reject');
         } catch (error) {
-            expect(error).toBeInstanceOf(CompletedAssessmentConflictError);
+            expect(error).toBeInstanceOf(Error);
             expect(error).toMatchObject({
                 name: 'CompletedAssessmentConflictError',
                 userId: 'user-1',

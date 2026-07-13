@@ -1,15 +1,5 @@
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
-export class CompletedAssessmentConflictError extends Error {
-    constructor({ userId, assessmentInputKey }) {
-        super(`Completed assessment already exists for userId=${ userId } assessmentInputKey=${ assessmentInputKey }`);
-        this.name = 'CompletedAssessmentConflictError';
-        this.userId = userId;
-        this.assessmentInputKey = assessmentInputKey;
-        this.isConditionalConflict = true;
-    }
-}
-
 export const createAssessmentStore = ({
     client,
     assessmentsTableName = process.env.ASSESSMENTS_TABLE_NAME,
@@ -76,7 +66,7 @@ export const createAssessmentStore = ({
                 }));
             } catch (error) {
                 if (error.name === 'ConditionalCheckFailedException') {
-                    throw new CompletedAssessmentConflictError({
+                    throw createCompletedAssessmentConflictError({
                         userId: item.userId,
                         assessmentInputKey: item.assessmentInputKey,
                     });
@@ -145,9 +135,19 @@ export const buildCompletedAssessmentItem = ({
 };
 
 export const isCompletedAssessmentConflict = error =>
-    error instanceof CompletedAssessmentConflictError
-    || error?.name === 'CompletedAssessmentConflictError'
+    error?.name === 'CompletedAssessmentConflictError'
     || error?.isConditionalConflict === true;
+
+const createCompletedAssessmentConflictError = ({ userId, assessmentInputKey }) => {
+    const error = new Error(
+        `Completed assessment already exists for userId=${ userId } assessmentInputKey=${ assessmentInputKey }`
+    );
+    error.name = 'CompletedAssessmentConflictError';
+    error.userId = userId;
+    error.assessmentInputKey = assessmentInputKey;
+    error.isConditionalConflict = true;
+    return error;
+};
 
 const getItem = async ({ client, tableName, key }) => {
     const result = await client.send(new GetCommand({
