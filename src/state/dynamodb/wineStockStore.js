@@ -48,7 +48,7 @@ export const createWineStockStore = (client, tableName = process.env.WINE_STOCK_
                     sk: `LISTING#${ wineId }`,
                 },
                 UpdateExpression: [
-                    'SET isCurrent = :false',
+                    'SET isCurrent = :false,',
                     'lastMissingAt = :missingAt',
                     'REMOVE gsi1pk, gsi1sk',
                 ].join(' '),
