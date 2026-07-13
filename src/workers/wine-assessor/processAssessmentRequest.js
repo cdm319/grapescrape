@@ -12,7 +12,7 @@ export const processAssessmentRequest = async ({
     record,
     assessmentStore,
     assessmentProvider,
-    defaultUserId = process.env.DEFAULT_USER_ID,
+    userId = process.env.DEFAULT_USER_ID,
     model = process.env.OPENAI_MODEL,
     now = () => new Date().toISOString(),
 }) => {
@@ -21,26 +21,20 @@ export const processAssessmentRequest = async ({
     if (!assessmentProvider) throw new Error('Assessment provider is required');
 
     const message = validateAssessmentMessage(parseAssessmentMessage(record.body));
-    const userId = message.userId ?? defaultUserId;
+    const resolvedUserId = message.userId ?? userId;
 
-    if (!userId) {
-        throw new Error('AssessmentRequested message userId or DEFAULT_USER_ID is required');
-    }
+    if (!resolvedUserId) throw new Error('AssessmentRequested message userId or DEFAULT_USER_ID is required');
 
-    const currentPalateProfile = await assessmentStore.getCurrentPalateProfile(userId);
+    const currentPalateProfile = await assessmentStore.getCurrentPalateProfile(resolvedUserId);
 
-    if (!currentPalateProfile) {
-        throw new Error(`Current palate profile was not found for userId=${ userId }`);
-    }
+    if (!currentPalateProfile) throw new Error(`Current palate profile was not found for userId=${ resolvedUserId }`);
 
     const palateProfileVersion = currentPalateProfile.palateProfileVersion ?? currentPalateProfile.version;
 
-    if (!palateProfileVersion) {
-        throw new Error(`Current palate profile is missing version for userId=${ userId }`);
-    }
+    if (!palateProfileVersion) throw new Error(`Current palate profile is missing version for userId=${ resolvedUserId }`);
 
     const assessmentInputKey = createAssessmentInputKey({
-        userId,
+        userId: resolvedUserId,
         sourceKey: message.source.key,
         palateProfileVersion,
         assessmentVersion: message.assessmentVersion,
@@ -48,7 +42,7 @@ export const processAssessmentRequest = async ({
     });
 
     const existingAssessment = await assessmentStore.getAssessmentByInputKey({
-        userId,
+        userId: resolvedUserId,
         assessmentInputKey,
     });
 
@@ -71,7 +65,7 @@ export const processAssessmentRequest = async ({
     });
 
     const completedAssessment = buildCompletedAssessmentItem({
-        userId,
+        userId: resolvedUserId,
         assessmentInputKey,
         source: message.source,
         wineSnapshot: message.wineSnapshot,

@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    processAssessmentBatch,
-    resolveAssessmentConcurrency,
-} from '@grapescrape/wine-assessor/processAssessmentBatch.js';
+import { processAssessmentBatch } from '@grapescrape/wine-assessor/processAssessmentBatch.js';
 
 const createRecord = messageId => ({
     messageId,
@@ -53,15 +50,6 @@ describe('processAssessmentBatch', () => {
         });
     });
 
-    it('uses ASSESSMENT_CONCURRENCY and defaults to 10', () => {
-        expect(resolveAssessmentConcurrency()).toBe(10);
-        expect(resolveAssessmentConcurrency('')).toBe(10);
-        expect(resolveAssessmentConcurrency('not-a-number')).toBe(10);
-        expect(resolveAssessmentConcurrency('0')).toBe(10);
-        expect(resolveAssessmentConcurrency('4')).toBe(4);
-        expect(resolveAssessmentConcurrency('20')).toBe(10);
-    });
-
     it('processes records with bounded in-batch concurrency', async () => {
         let activeCount = 0;
         let maxActiveCount = 0;
@@ -93,7 +81,6 @@ describe('processAssessmentBatch', () => {
     });
 
     it('defaults in-batch concurrency to 10 records', async () => {
-        vi.stubEnv('ASSESSMENT_CONCURRENCY', '');
         let activeCount = 0;
         let maxActiveCount = 0;
         const records = Array.from({ length: 10 }, (_, index) => createRecord(`message-${ index + 1 }`));
@@ -128,7 +115,7 @@ describe('processAssessmentBatch', () => {
             assessmentProvider: {
                 assessWine: vi.fn(),
             },
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             concurrency: 1,
         });
 
@@ -161,7 +148,7 @@ describe('processAssessmentBatch', () => {
             assessmentProvider: {
                 assessWine: vi.fn(),
             },
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             concurrency: 1,
         });
 
@@ -185,7 +172,7 @@ describe('processAssessmentBatch', () => {
             assessmentProvider: {
                 assessWine: vi.fn(),
             },
-            defaultUserId: undefined,
+            userId: undefined,
             concurrency: 1,
         });
 
@@ -214,7 +201,7 @@ describe('processAssessmentBatch', () => {
             assessmentProvider: {
                 assessWine: vi.fn().mockRejectedValue(new Error('OpenAI unavailable')),
             },
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             concurrency: 1,
         });
 

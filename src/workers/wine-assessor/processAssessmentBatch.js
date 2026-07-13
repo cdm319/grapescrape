@@ -1,22 +1,12 @@
 import { processAssessmentRequest } from './processAssessmentRequest.js';
 
-export const resolveAssessmentConcurrency = value => {
-    const parsed = Number.parseInt(value ?? '10', 10);
-
-    if (!Number.isFinite(parsed) || parsed < 1) {
-        return 10;
-    }
-
-    return Math.min(parsed, 10);
-};
-
 export const processAssessmentBatch = async ({
     event,
     assessmentStore,
     assessmentProvider,
-    defaultUserId = process.env.DEFAULT_USER_ID,
+    userId = process.env.DEFAULT_USER_ID,
     model = process.env.OPENAI_MODEL,
-    concurrency = resolveAssessmentConcurrency(process.env.ASSESSMENT_CONCURRENCY),
+    concurrency = 10,
     processRecord = processAssessmentRequest,
     now,
 }) => {
@@ -34,7 +24,7 @@ export const processAssessmentBatch = async ({
                     record,
                     assessmentStore,
                     assessmentProvider,
-                    defaultUserId,
+                    userId,
                     model,
                     now,
                 });

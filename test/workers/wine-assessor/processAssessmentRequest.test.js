@@ -87,7 +87,7 @@ describe('processAssessmentRequest', () => {
         const result = await processAssessmentRequest({
             record: createRecord(),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             model: 'gpt-test',
             now: () => '2026-01-02T03:04:05.000Z',
         });
@@ -131,7 +131,7 @@ describe('processAssessmentRequest', () => {
         const result = await processAssessmentRequest({
             record: createRecord({ ...message, forceReassessment: true }),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             model: 'gpt-test',
         });
 
@@ -154,7 +154,7 @@ describe('processAssessmentRequest', () => {
         const result = await processAssessmentRequest({
             record: createRecord(),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             model: 'gpt-test',
         });
 
@@ -170,7 +170,7 @@ describe('processAssessmentRequest', () => {
         await expect(processAssessmentRequest({
             record: createRecord({ ...message, requestId: undefined }),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
         })).rejects.toThrow('requestId is required');
 
         expect(context.assessmentStore.getCurrentPalateProfile).not.toHaveBeenCalled();
@@ -182,7 +182,7 @@ describe('processAssessmentRequest', () => {
         await expect(processAssessmentRequest({
             record: createRecord(),
             ...context,
-            defaultUserId: undefined,
+            userId: undefined,
         })).rejects.toThrow('userId or DEFAULT_USER_ID is required');
     });
 
@@ -198,7 +198,7 @@ describe('processAssessmentRequest', () => {
         await processAssessmentRequest({
             record: createRecord({ ...message, userId: 'message-user' }),
             ...context,
-            defaultUserId: 'default-user',
+            userId: 'default-user',
             model: 'gpt-test',
         });
 
@@ -223,7 +223,7 @@ describe('processAssessmentRequest', () => {
         await processAssessmentRequest({
             record: createRecord({ ...message, palateProfileVersion: 1 }),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             model: 'gpt-test',
         });
 
@@ -240,7 +240,7 @@ describe('processAssessmentRequest', () => {
         await expect(processAssessmentRequest({
             record: createRecord(),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
             model: 'gpt-test',
         })).rejects.toThrow('OpenAI unavailable');
 
@@ -259,7 +259,7 @@ describe('processAssessmentRequest', () => {
                 },
             }),
             ...context,
-            defaultUserId: 'user-1',
+            userId: 'user-1',
         })).rejects.toThrow('wineSnapshot.sourceHash must match sourceHash');
     });
 });
