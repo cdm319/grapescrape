@@ -156,6 +156,20 @@ Prefer small modules with direct imports. Avoid broad barrel imports that may bl
 
 Validate required environment variables or injected configuration at composition boundaries.
 
+### Readability and maintainability
+
+Optimise first for correctness and human readability. Efficiency matters, but avoid making straightforward application code harder to understand for marginal savings.
+
+- Prefer explicit control flow over clever, compressed, or highly generic implementations.
+- Use specific domain names such as `getCurrentPalateProfile` and `putCompletedAssessment`; avoid vague names such as `processItem`, `fetchData`, or `handleResult`.
+- Keep functions focused, but do not create one-use wrapper helpers unless they remove meaningful complexity or establish a useful domain boundary.
+- Avoid abstractions that merely rename a single expression or hide an important domain decision.
+- Keep important decisions visible in orchestration code, including idempotent skips, conditional-write conflicts, retryable failures, and OpenAI-call boundaries.
+- Comments should explain why a non-obvious decision exists. Do not add comments that only narrate the next line of code.
+- Tests should describe observable behaviour and business rules rather than private implementation details.
+- Do not refactor unrelated code while implementing a ticket.
+- Before completing a change, reread the full diff as a human maintainer and remove unnecessary indirection, duplication, defensive noise, generated-looking commentary, and dead code.
+
 ## Change discipline
 
 Keep changes focused. Do not mix unrelated refactors with behaviour changes.
@@ -179,6 +193,51 @@ Add source hash tests
 Wire retailer scraper Lambda infrastructure
 ```
 
+## Parallel agent development
+
+Use parallel agents only where work can be divided into genuinely independent deliverables with stable boundaries. The goal is not to maximise the number of agents; it is to shorten delivery time without creating contract drift or review noise.
+
+### Contract first
+
+Before starting parallel implementation:
+
+1. Define shared public contracts, naming, data shapes, and likely module boundaries.
+2. Decide which ticket owns each shared contract.
+3. Identify files each agent may change and avoid overlapping ownership where practical.
+4. Record unresolved architectural decisions before agents begin coding.
+
+Do not ask parallel agents to independently invent competing versions of the same interface. Integration tickets should consume established contracts rather than reconcile avoidable differences later.
+
+### Branch and worktree isolation
+
+- Every parallel implementation branch must start from the same current `main` commit unless a ticket explicitly depends on another branch.
+- Use separate Git worktrees or otherwise isolated checkouts for simultaneous agents.
+- Do not let two agents write to the same working tree.
+- Keep branches scoped to one ticket and open separate pull requests.
+- Do not branch new work from a long-lived feature branch when `main` contains the required dependencies.
+
+### Roles
+
+Treat agent work as three distinct roles:
+
+- **Implementer:** writes the narrowly scoped ticket and its tests.
+- **Reviewer:** reviews requirements, correctness, readability, scope, contract drift, and test quality before proposing changes.
+- **Integrator:** the human owner decides which feedback matters, controls merge order, and remains responsible for architecture and production safety.
+
+A reviewer should report findings before rewriting the implementation. Do not automatically accept stylistic rewrites that add churn without improving correctness or maintainability.
+
+### Merge and integration discipline
+
+- Review parallel pull requests independently before merging either.
+- After one parallel branch merges, update or rebase the remaining branch onto current `main` and rerun its validation.
+- After all parallel foundations merge, run the relevant combined test suite from `main` before starting dependent integration work.
+- Start integration tickets from fresh current `main`, not by continuing one of the foundation branches.
+- Treat merged public interfaces as established contracts. Do not casually refactor upstream work inside an integration ticket merely to make local implementation easier.
+- If an established interface is genuinely insufficient, stop and propose the smallest contract change before modifying it.
+- Keep application/business-logic integration and infrastructure wiring in separate tickets where practical.
+
+Parallel development is complete only when all changes coexist cleanly on `main`; opening multiple pull requests is not itself successful integration.
+
 ## Current architecture notes
 
 Retailer scraper flow:
@@ -200,11 +259,12 @@ Wine assessor flow:
 SQS assessment queue
   -> wine-assessor Lambda
     -> validate message
+    -> resolve the current palate profile at processing time
     -> create deterministic assessment key
-    -> conditionally create/claim assessment record
-    -> call OpenAI only when assessment is not already completed/in progress
-    -> persist assessment result
-    -> emit notification if relevant
+    -> skip when the same completed assessment already exists
+    -> call OpenAI only when no completed assessment exists
+    -> conditionally persist the completed assessment
+    -> report only failed SQS records for retry/DLQ handling
 ```
 
 Prefer AWS-native managed services and simple serverless primitives before adding heavier services. Use DynamoDB as the operational data store. Use S3 for static UI assets and raw/archive data where appropriate. Use OpenSearch only if DynamoDB/client-side filtering becomes insufficient for search.
