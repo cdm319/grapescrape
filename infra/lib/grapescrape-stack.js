@@ -23,7 +23,7 @@ export class GrapeScrapeFutureStack extends Stack {
         Tags.of(this).add('Project', 'grapescrape');
 
         const alertsTopic = sns.Topic.fromTopicArn(this, 'AlertsTopic', 'arn:aws:sns:eu-west-2:668528910170:grapescrape-alerts');
-        const openAiApiKeySecretName = process.env.GRAPESCRAPE_OPENAI_API_KEY_SECRET_NAME ?? 'grapescrape-openai-api-key';
+        const openAiApiKeySecretName = process.env.GRAPESCRAPE_OPENAI_API_KEY_SECRET_NAME ?? 'grapescrape/openai-api-key';
         const openAiApiKeySecret = secretsmanager.Secret.fromSecretNameV2(
             this,
             'OpenAiApiKeySecret',
