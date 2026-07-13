@@ -126,11 +126,17 @@ Expected: CloudFormation completes successfully. Do not continue if the deployme
 aws lambda get-function-configuration \
   --function-name grapescrape-wine-assessor \
   --region "$REGION" \
-  --query '{State:State,LastUpdateStatus:LastUpdateStatus,Runtime:Runtime,Timeout:Timeout,ReservedConcurrency:ReservedConcurrentExecutions,Environment:Environment.Variables}' \
+  --query '{State:State,LastUpdateStatus:LastUpdateStatus,Runtime:Runtime,Timeout:Timeout,Environment:Environment.Variables}' \
+  --output json
+
+aws lambda get-function-concurrency \
+  --function-name grapescrape-wine-assessor \
+  --region "$REGION" \
+  --query '{ReservedConcurrency:ReservedConcurrentExecutions}' \
   --output json
 ```
 
-Expected: `State` is `Active`, `LastUpdateStatus` is `Successful`, timeout is `600`, reserved concurrency is `1`, and the environment matches the reviewed defaults.
+Expected: `State` is `Active`, `LastUpdateStatus` is `Successful`, timeout is `600`, the environment matches the reviewed defaults, and reserved concurrency is `1`.
 
 ### 2. Check the event source mapping
 
@@ -260,7 +266,7 @@ After the next scheduled retailer scrape, confirm:
 
 **Likely meaning:** invalid credentials, rate or quota limits, model access, request validation, or a transient provider error.
 
-**First check:** tail the assessor logs and capture the error type, request ID, and HTTP status without exposing credentials.
+**First check:** tail the assessor logs and find `Failed to process assessment record <messageId> with <errorName>`. The worker currently logs the SQS message ID and error name, but not the provider request ID or HTTP status.
 
 **Safest next action:** verify the Lambda environment and secret metadata, then check OpenAI account usage/status separately. Resolve persistent errors before redriving failed work.
 
