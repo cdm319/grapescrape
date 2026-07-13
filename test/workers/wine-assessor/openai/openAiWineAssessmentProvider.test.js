@@ -62,6 +62,8 @@ describe('createOpenAiWineAssessmentProvider', () => {
 
     it('uses the Responses API with strict structured output and returns the parsed assessment', async () => {
         vi.stubEnv('OPENAI_MODEL', 'gpt-test');
+        vi.stubEnv('OPENAI_REASONING_EFFORT', 'medium');
+        vi.stubEnv('OPENAI_TEXT_VERBOSITY', 'medium');
         const responsesCreate = vi.fn().mockResolvedValue({ output_text: JSON.stringify(assessment) });
         const OpenAIClient = vi.fn().mockImplementation(function () {
             return {
@@ -87,6 +89,9 @@ describe('createOpenAiWineAssessmentProvider', () => {
         expect(OpenAIClient).toHaveBeenCalledWith({ apiKey: 'test-api-key' });
         expect(responsesCreate).toHaveBeenCalledWith({
             model: 'gpt-test',
+            reasoning: {
+                effort: 'medium'
+            },
             prompt_cache_key: 'grapescrape-wine-assessment-profile-v7',
             prompt_cache_retention: '24h',
             input: [
@@ -113,6 +118,46 @@ describe('createOpenAiWineAssessmentProvider', () => {
                 }
             ],
             text: {
+                verbosity: 'medium',
+                format: {
+                    type: 'json_schema',
+                    name: 'wine_assessment',
+                    strict: true,
+                    schema: wineAssessmentSchema
+                }
+            }
+        });
+    });
+
+    it('can configure reasoning effort and text verbosity for the Responses API request', async () => {
+        vi.stubEnv('OPENAI_MODEL', 'gpt-test');
+        const responsesCreate = vi.fn().mockResolvedValue({ output_text: JSON.stringify(assessment) });
+        const OpenAIClient = vi.fn().mockImplementation(function () {
+            return {
+                responses: {
+                    create: responsesCreate
+                }
+            };
+        });
+
+        const provider = createOpenAiWineAssessmentProvider({
+            reasoningEffort: 'low',
+            textVerbosity: 'high',
+            getApiKey: vi.fn().mockResolvedValue('test-api-key'),
+            OpenAIClient
+        });
+
+        await provider.assessWine({
+            wine,
+            palateProfile: { version: 1 }
+        });
+
+        expect(responsesCreate.mock.calls[0][0]).toMatchObject({
+            reasoning: {
+                effort: 'low'
+            },
+            text: {
+                verbosity: 'high',
                 format: {
                     type: 'json_schema',
                     name: 'wine_assessment',
