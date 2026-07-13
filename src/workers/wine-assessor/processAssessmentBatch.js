@@ -39,7 +39,8 @@ export const processAssessmentBatch = async ({
                     now,
                 });
             } catch (error) {
-                console.error(`Failed to process assessment record ${ record.messageId }:`, error);
+                const reason = error instanceof Error ? error.message : String(error);
+                console.error(`Failed to process assessment record ${ record.messageId }: ${ reason }`);
                 failures.push({ itemIdentifier: record.messageId });
             }
         }
