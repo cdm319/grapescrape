@@ -1,16 +1,27 @@
-export const handler = async (event, context) => {
-    try {
-        const sqsEvents = event.Records;
-        console.log(`GrapeScrape wine assessor starting with ${sqsEvents.length} events.`);
+import { documentClient } from '@grapescrape/state/dynamodb/client';
+import { createAssessmentStore } from '@grapescrape/state/dynamodb/assessmentStore';
+import { createOpenAiWineAssessmentProvider } from './openai/openAiWineAssessmentProvider.js';
+import { processAssessmentBatch } from './processAssessmentBatch.js';
 
-        console.log("GrapeScrape wine assessor finished.");
+const assessmentStore = createAssessmentStore({ client: documentClient });
+const assessmentProvider = createOpenAiWineAssessmentProvider();
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: "Wine assessment completed successfully." }),
-        };
-    } catch (error) {
-        console.error("Error in wine assessor:", error);
-        throw error;
+export const handler = async event => {
+    const records = event?.Records ?? [];
+    console.log(`GrapeScrape wine assessor starting with ${ records.length } records.`);
+
+    if (records.length === 0) {
+        console.log('GrapeScrape wine assessor finished with 0 failed records.');
+        return { batchItemFailures: [] };
     }
+
+    const result = await processAssessmentBatch({
+        records,
+        assessmentStore,
+        assessmentProvider,
+    });
+
+    console.log(`GrapeScrape wine assessor finished with ${ result.batchItemFailures.length } failed records.`);
+
+    return result;
 };
