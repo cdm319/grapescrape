@@ -264,6 +264,42 @@ export class GrapeScrapeFutureStack extends Stack {
             sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
         });
 
+        const catalogueFunction = new NodejsFunction(this, 'CatalogueFunction', {
+            functionName: 'grapescrape-catalogue-api',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/catalogue/index.js'),
+            handler: 'handler',
+            memorySize: 128,
+            timeout: Duration.seconds(10),
+            environment: {
+                WINE_STOCK_TABLE_NAME: wineStockTable.tableName,
+                ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+            },
+        });
+
+        wineStockTable.grant(catalogueFunction, 'dynamodb:GetItem', 'dynamodb:Query');
+        assessmentsTable.grant(catalogueFunction, 'dynamodb:Query');
+        userDataTable.grant(catalogueFunction, 'dynamodb:GetItem');
+
+        const catalogueIntegration = new apigatewayv2Integrations.HttpLambdaIntegration(
+            'CatalogueIntegration',
+            catalogueFunction,
+        );
+
+        httpApi.addRoutes({
+            path: '/v1/catalogue/wines',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: catalogueIntegration,
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/catalogue/wines/{sourceKey}',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: catalogueIntegration,
+        });
+
         const assessmentDeadLetterQueue = new sqs.Queue(this, 'AssessmentDeadLetterQueue', {
             queueName: 'grapescrape-assessment-dlq',
             retentionPeriod: Duration.days(14),
