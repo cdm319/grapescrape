@@ -11,22 +11,22 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./components/AppShell";
 import type { PublicConfig } from "./config";
 import { CallbackPage } from "./pages/CallbackPage";
+import { HomeDashboardRoute } from "./pages/HomeDashboardPage";
 import {
   AssessWinePage,
   HistoryPage,
-  HomePage,
   NotFoundPage,
   PalatePage,
   WinesPage,
 } from "./pages/PlaceholderPages";
 
-export function AppRoutes() {
+export function AppRoutes({ config }: { config: PublicConfig }) {
   return (
     <Routes>
       <Route path="/auth/callback" element={<CallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<HomeDashboardRoute config={config} />} />
           <Route path="wines" element={<WinesPage />} />
           <Route path="palate" element={<PalatePage />} />
           <Route path="history" element={<HistoryPage />} />
@@ -66,7 +66,7 @@ export function App({
     <QueryClientProvider client={queryClient}>
       <AuthProvider client={client}>
         <BrowserRouter>
-          <AppRoutes />
+          <AppRoutes config={config} />
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

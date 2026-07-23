@@ -12,6 +12,16 @@ import {
 } from "../../../src/ui/src/auth/authClient";
 import type { PublicConfig } from "../../../src/ui/src/config";
 
+const publicConfig: PublicConfig = {
+  apiBaseUrl: "https://api.grapescrape.com",
+  authDomain: "https://auth.grapescrape.com",
+  cognitoRegion: "eu-west-2",
+  userPoolId: "eu-west-2_example123",
+  userPoolClientId: "publicclient123",
+  callbackUrl: "https://app.grapescrape.com/auth/callback",
+  logoutUrl: "https://app.grapescrape.com/",
+};
+
 function createFakeAuthClient({
   session = null,
   callbackSession,
@@ -47,7 +57,7 @@ function renderRoutes(client: AuthClient, initialEntry: string) {
   return render(
     <AuthProvider client={client}>
       <MemoryRouter initialEntries={[initialEntry]}>
-        <AppRoutes />
+        <AppRoutes config={publicConfig} />
       </MemoryRouter>
     </AuthProvider>,
   );
@@ -157,17 +167,7 @@ describe("Cognito navigation safety", () => {
   });
 
   it("builds logout from validated public configuration", () => {
-    const config: PublicConfig = {
-      apiBaseUrl: "https://api.grapescrape.com",
-      authDomain: "https://auth.grapescrape.com",
-      cognitoRegion: "eu-west-2",
-      userPoolId: "eu-west-2_example123",
-      userPoolClientId: "publicclient123",
-      callbackUrl: "https://app.grapescrape.com/auth/callback",
-      logoutUrl: "https://app.grapescrape.com/",
-    };
-
-    expect(buildCognitoLogoutUrl(config)).toBe(
+    expect(buildCognitoLogoutUrl(publicConfig)).toBe(
       "https://auth.grapescrape.com/logout?client_id=publicclient123&logout_uri=https%3A%2F%2Fapp.grapescrape.com%2F",
     );
   });
