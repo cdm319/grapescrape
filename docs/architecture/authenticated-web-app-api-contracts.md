@@ -54,8 +54,10 @@ userId = requestContext.authorizer.jwt.claims.sub
 ```
 
 The API must validate the configured issuer and application-client audience.
-An absent, expired, malformed, or incorrectly issued token returns `401
-UNAUTHENTICATED`.
+An absent, expired, malformed, or incorrectly issued token is rejected before
+the Lambda integration. API Gateway HTTP API returns its standard `401
+{"message":"Unauthorized"}` response for this case, and the frontend normalises
+that response to `UNAUTHENTICATED`.
 
 No public path, query parameter, or request body accepts `userId`.
 
@@ -119,7 +121,8 @@ assessment-request IDs returned by `POST /v1/assessment-requests`.
 
 ### Error envelope
 
-All expected and unexpected errors use one safe shape:
+All expected and unexpected errors returned by Lambda integrations use one
+safe shape:
 
 ```json
 {
@@ -141,6 +144,12 @@ All expected and unexpected errors use one safe shape:
 
 `details` is optional and contains only stable, client-actionable values. Raw
 AWS, Cognito, DynamoDB, SQS or OpenAI errors are never returned.
+
+The sole envelope exception is a `401` generated directly by the HTTP API JWT
+authorizer before a request reaches Lambda. API Gateway returns
+`{"message":"Unauthorized"}` for that response and does not support REST API
+gateway-response templates for HTTP APIs. Frontends must treat it as
+`UNAUTHENTICATED`.
 
 Common errors are:
 
@@ -557,6 +566,7 @@ Validation and lifecycle:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `GET` | `/v1/auth/session` | Confirm the token-derived authenticated subject |
 | `GET` | `/v1/palate-profile` | Read the current immutable profile version |
 | `PUT` | `/v1/palate-profile` | Create the next profile version |
 | `GET` | `/v1/catalogue/wines` | Search current retailer listings |
@@ -573,6 +583,30 @@ Validation and lifecycle:
 | `DELETE` | `/v1/manual-wines/{manualWineId}` | Soft-delete a manual wine |
 
 No generic Home or activity route is introduced for the first release.
+
+### `GET /v1/auth/session`
+
+This infrastructure diagnostic route verifies the Cognito JWT authorizer and
+the API identity boundary before domain routes are added.
+
+Request: no body or query parameters.
+
+Response: `200` with only the token-derived subject:
+
+```json
+{
+  "data": {
+    "subject": "5682e224-80d1-7027-767b-0617ac74683f"
+  },
+  "meta": {
+    "requestId": "api-gateway-request-id"
+  }
+}
+```
+
+No email address, token, token metadata or other claim is returned. Missing or
+invalid tokens are rejected by the HTTP API JWT authorizer with its standard
+`401 {"message":"Unauthorized"}` response.
 
 ### `GET /v1/palate-profile`
 
