@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { EmptyState, InlineBanner, StatusBadge } from "../components/Primitives";
+import { EmptyState } from "../components/Primitives";
 
 function PageHeading({
   eyebrow,
@@ -16,48 +16,6 @@ function PageHeading({
       <h1>{title}</h1>
       <p>{description}</p>
     </header>
-  );
-}
-
-export function HomePage() {
-  return (
-    <div className="page-stack">
-      <PageHeading
-        eyebrow="Your cellar companion"
-        title="Wines chosen for the way you taste."
-        description="GrapeScrape brings retailer stock, your palate and clear assessments together in one calm place."
-      />
-      <section className="foundation-grid" aria-label="GrapeScrape sections">
-        <Link className="foundation-card foundation-card--feature" to="/wines">
-          <span className="eyebrow">Explore</span>
-          <h2>Find your next bottle</h2>
-          <p>
-            Browse current retailer wines and see how each one fits your
-            palate.
-          </p>
-          <span className="text-link">Browse wines →</span>
-        </Link>
-        <Link className="foundation-card" to="/palate">
-          <StatusBadge tone="positive">Personal</StatusBadge>
-          <h2>Your palate</h2>
-          <p>
-            Shape recommendations with the styles and bottles that matter to
-            you.
-          </p>
-          <span className="text-link">View palate →</span>
-        </Link>
-        <Link className="foundation-card" to="/history">
-          <StatusBadge>Saved</StatusBadge>
-          <h2>Assessment history</h2>
-          <p>Return to earlier assessments and see how a wine was judged.</p>
-          <span className="text-link">Open history →</span>
-        </Link>
-      </section>
-      <InlineBanner>
-        Feature data will appear as the catalogue, palate and history APIs are
-        connected in their dedicated tickets.
-      </InlineBanner>
-    </div>
   );
 }
 
