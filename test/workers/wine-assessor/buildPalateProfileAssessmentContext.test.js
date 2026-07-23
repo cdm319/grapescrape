@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-    projectPalateProfileForAssessment,
-} from '@grapescrape/wine-assessor/projectPalateProfileForAssessment.js';
+    buildPalateProfileAssessmentContext,
+} from '@grapescrape/wine-assessor/buildPalateProfileAssessmentContext.js';
 
 const stylePreferences = {
     body: { preferred: ['full'], avoided: ['light'] },
@@ -15,8 +15,8 @@ const stylePreferences = {
     styleTags: { preferred: ['polished'], avoided: ['rustic'] },
 };
 
-describe('projectPalateProfileForAssessment', () => {
-    it('removes identifiers and metadata from examples while preserving the complete profile', () => {
+describe('buildPalateProfileAssessmentContext', () => {
+    it('keeps only assessment-relevant profile fields and four-field wine examples', () => {
         const currentPalateProfile = {
             pk: 'USER#user-1',
             sk: 'PALATE_PROFILE#7',
@@ -38,6 +38,8 @@ describe('projectPalateProfileForAssessment', () => {
             },
             createdAt: '2026-07-23T10:30:00.000Z',
             updatedAt: '2026-07-23T10:30:00.000Z',
+            gsi1pk: 'USER#user-1#PALATE_PROFILES',
+            gsi1sk: 'VERSION#7',
             currentPointer: {
                 pk: 'USER#user-1',
                 sk: 'CURRENT_PALATE_PROFILE',
@@ -45,10 +47,10 @@ describe('projectPalateProfileForAssessment', () => {
             },
         };
 
-        const result = projectPalateProfileForAssessment(currentPalateProfile);
+        const result = buildPalateProfileAssessmentContext(currentPalateProfile);
 
         expect(result).toEqual({
-            ...currentPalateProfile,
+            palateProfileVersion: 7,
             palateProfile: {
                 stylePreferences,
                 wineExamples: [{
@@ -78,15 +80,30 @@ describe('projectPalateProfileForAssessment', () => {
         );
     });
 
-    it('preserves legacy profiles that do not contain wine examples', () => {
+    it('keeps legacy assessment profile content without its storage envelope', () => {
         const currentPalateProfile = {
-            palateProfileVersion: 3,
+            pk: 'USER#user-1',
+            sk: 'PALATE_PROFILE#3',
+            entityType: 'PalateProfile',
+            userId: 'user-1',
+            version: 3,
             palateProfile: {
                 likes: ['Bordeaux'],
+                summary: 'Likes structured red wines.',
+            },
+            createdAt: '2025-01-01T00:00:00.000Z',
+            currentPointer: {
+                pk: 'USER#user-1',
+                sk: 'CURRENT_PALATE_PROFILE',
             },
         };
 
-        expect(projectPalateProfileForAssessment(currentPalateProfile))
-            .toBe(currentPalateProfile);
+        expect(buildPalateProfileAssessmentContext(currentPalateProfile)).toEqual({
+            palateProfileVersion: 3,
+            palateProfile: {
+                likes: ['Bordeaux'],
+                summary: 'Likes structured red wines.',
+            },
+        });
     });
 });

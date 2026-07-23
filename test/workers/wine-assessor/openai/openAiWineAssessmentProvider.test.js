@@ -50,11 +50,7 @@ const wine = {
     description: 'Ripe and supple'
 };
 
-const palateProfile = {
-    pk: 'USER#user-1',
-    sk: 'PALATE_PROFILE#7',
-    entityType: 'PalateProfile',
-    userId: 'user-1',
+const palateProfileAssessmentContext = {
     palateProfileVersion: 7,
     palateProfile: {
         stylePreferences: {
@@ -74,13 +70,6 @@ const palateProfile = {
             sentiment: 'enjoyed',
             notes: 'Ripe fruit and a plush texture.'
         }]
-    },
-    createdAt: '2026-07-23T10:30:00.000Z',
-    updatedAt: '2026-07-23T10:30:00.000Z',
-    currentPointer: {
-        pk: 'USER#user-1',
-        sk: 'CURRENT_PALATE_PROFILE',
-        palateProfileVersion: 7
     }
 };
 
@@ -112,7 +101,7 @@ describe('createOpenAiWineAssessmentProvider', () => {
 
         const result = await provider.assessWine({
             wine,
-            palateProfile
+            palateProfile: palateProfileAssessmentContext
         });
 
         expect(result).toEqual(assessment);
@@ -134,7 +123,7 @@ describe('createOpenAiWineAssessmentProvider', () => {
                     role: 'user',
                     content: JSON.stringify({
                         task: 'Use this palate profile for all following wine assessment.',
-                        palateProfile
+                        palateProfile: palateProfileAssessmentContext
                     })
                 },
                 {

@@ -130,7 +130,12 @@ describe('processAssessmentRequest', () => {
         });
         expect(context.assessmentProvider.assessWine).toHaveBeenCalledWith({
             wine: wineSnapshot,
-            palateProfile,
+            palateProfile: {
+                palateProfileVersion: 7,
+                palateProfile: {
+                    likes: ['Bordeaux'],
+                },
+            },
         });
         expect(context.assessmentStore.putCompletedAssessment).toHaveBeenCalledWith(expect.objectContaining({
             userId: 'user-1',
@@ -207,7 +212,7 @@ describe('processAssessmentRequest', () => {
         expect(context.assessmentProvider.assessWine).toHaveBeenCalledWith({
             wine: completeWineSnapshot,
             palateProfile: {
-                ...currentPalateProfile,
+                palateProfileVersion: 7,
                 palateProfile: {
                     stylePreferences,
                     wineExamples: [{
