@@ -5,6 +5,7 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+import { ApiClientProvider } from "./api/ApiClientProvider";
 import { AuthProvider } from "./auth/AuthProvider";
 import { createAuthClient, type AuthClient } from "./auth/authClient";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
@@ -16,9 +17,9 @@ import {
   HistoryPage,
   HomePage,
   NotFoundPage,
-  PalatePage,
   WinesPage,
 } from "./pages/PlaceholderPages";
+import { PalateProfilePage } from "./pages/PalateProfilePage";
 
 export function AppRoutes() {
   return (
@@ -28,7 +29,7 @@ export function AppRoutes() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="wines" element={<WinesPage />} />
-          <Route path="palate" element={<PalatePage />} />
+          <Route path="palate" element={<PalateProfilePage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="assess" element={<AssessWinePage />} />
           <Route path="*" element={<NotFoundPage />} />
@@ -65,9 +66,11 @@ export function App({
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider client={client}>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ApiClientProvider config={config}>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ApiClientProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
