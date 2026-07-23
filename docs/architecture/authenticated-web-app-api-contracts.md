@@ -769,6 +769,7 @@ Request query:
 | `availability` | Comma-separated availability values |
 | `fit` | Comma-separated canonical fit values |
 | `confidence` | Comma-separated canonical confidence values |
+| `highlight` | Optional boolean `true` or `false` |
 | `freshness` | Comma-separated freshness statuses |
 | `completedFrom` | Optional inclusive RFC 3339 timestamp |
 | `completedTo` | Optional inclusive RFC 3339 timestamp |
@@ -779,7 +780,11 @@ Request query:
 
 The result has one item per `sourceKey`, based on that source's latest completed
 assessment. Full-text searching over headline, summary, reasons, cautions or
-evidence is not supported.
+evidence is not supported. `highlight=false` matches only latest completed
+assessments whose `highlight` value is false. Every row on this endpoint is
+assessed, so unassessed wines are not included as unhighlighted results. The
+`highlight` filter is included in cursor binding, and changing it invalidates
+an existing cursor.
 
 Response: `200` list envelope containing assessed-wine summaries.
 
