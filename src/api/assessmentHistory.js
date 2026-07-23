@@ -1,18 +1,13 @@
 import { createAssessmentHistoryStore } from '@grapescrape/state/dynamodb/assessmentHistoryStore';
 import { documentClient } from '@grapescrape/state/dynamodb/client';
+import {
+    createManualWineStore,
+} from '@grapescrape/state/dynamodb/manualWineStore';
 import { AssessmentHistoryApiError } from './assessmentHistoryApiError.js';
 import { createAssessmentHistoryService } from './assessmentHistoryService.js';
 
 const JSON_HEADERS = {
     'content-type': 'application/json; charset=utf-8',
-};
-
-// CM-42 owns the manual-wine storage keys. Keep this failure explicit until
-// that ticket provides the user-scoped read adapter used by the service.
-const unconfiguredManualWineReader = async () => {
-    const error = new Error('Manual wine read contract is not configured');
-    error.name = 'ManualWineReadContractUnavailableError';
-    throw error;
 };
 
 export const createAssessmentHistoryHandler = ({
@@ -123,12 +118,19 @@ export const createAssessmentHistoryHandler = ({
     };
 };
 
-export const handler = event => createAssessmentHistoryHandler({
-    historyStore: createAssessmentHistoryStore({
+export const handler = event => {
+    const manualWineStore = createManualWineStore({
         client: documentClient,
-    }),
-    getManualWineBySourceKey: unconfiguredManualWineReader,
-})(event);
+    });
+
+    return createAssessmentHistoryHandler({
+        historyStore: createAssessmentHistoryStore({
+            client: documentClient,
+        }),
+        getManualWineBySourceKey: input =>
+            manualWineStore.getManualWineBySourceKey(input),
+    })(event);
+};
 
 const readSourceKey = value => {
     if (typeof value !== 'string' || value.length === 0) {

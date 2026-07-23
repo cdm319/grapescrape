@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import {
+    createManualWineStore,
+} from '@grapescrape/state/dynamodb/manualWineStore';
 import {
     createAssessmentHistoryHandler,
 } from '../../src/api/assessmentHistory.js';
@@ -315,7 +319,7 @@ describe('assessment history API', () => {
         expect(parseBody(mismatchedResponse).error.code).toBe('INVALID_CURSOR');
     });
 
-    it('distinguishes active and deleted manual sources through the injected user-scoped read boundary', async () => {
+    it('resolves active and deleted manual sources through the merged owner-scoped store boundary', async () => {
         const assessments = [
             completedAssessment({
                 sourceKey: MANUAL_SOURCE_1,
@@ -344,20 +348,25 @@ describe('assessment history API', () => {
                 }),
             },
         });
-        const getManualWineBySourceKey = vi.fn(({ userId, sourceKey }) => ({
-            userId,
-            sourceKey,
-            name: sourceKey === MANUAL_SOURCE_1
-                ? 'Active cellar wine'
-                : 'Deleted cellar wine',
-            vintage: sourceKey === MANUAL_SOURCE_1 ? 'NV' : '2019',
-            description: 'Manual description',
-            sourceHash: 'source-hash',
-            isActive: sourceKey === MANUAL_SOURCE_1,
-            deletedAt: sourceKey === MANUAL_SOURCE_1
-                ? null
-                : '2026-07-23T13:00:00.000Z',
-        }));
+        const manualWineClient = createManualWineReadClient([
+            manualWineItem({
+                sourceKey: MANUAL_SOURCE_1,
+                name: 'Active cellar wine',
+                vintage: 'NV',
+            }),
+            manualWineItem({
+                sourceKey: MANUAL_SOURCE_2,
+                name: 'Deleted cellar wine',
+                vintage: '2019',
+                status: 'deleted',
+            }),
+        ]);
+        const manualWineStore = createManualWineStore({
+            client: manualWineClient,
+            userDataTableName: 'UserData',
+        });
+        const getManualWineBySourceKey = input =>
+            manualWineStore.getManualWineBySourceKey(input);
         const response = await handlerFor({
             historyStore,
             getManualWineBySourceKey,
@@ -392,14 +401,18 @@ describe('assessment history API', () => {
                 currentPrice: null,
             },
         ]);
-        expect(getManualWineBySourceKey).toHaveBeenCalledWith({
-            userId: 'authenticated-user',
-            sourceKey: MANUAL_SOURCE_1,
-        });
-        expect(getManualWineBySourceKey).toHaveBeenCalledWith({
-            userId: 'authenticated-user',
-            sourceKey: MANUAL_SOURCE_2,
-        });
+        expect(manualWineClient.send.mock.calls.map(
+            ([command]) => command.input.Key,
+        )).toEqual([
+            {
+                pk: 'USER#authenticated-user',
+                sk: 'MANUAL_WINE#11111111-1111-4111-8111-111111111111',
+            },
+            {
+                pk: 'USER#authenticated-user',
+                sk: 'MANUAL_WINE#22222222-2222-4222-8222-222222222222',
+            },
+        ]);
 
         const deletedManualResponse = await handlerFor({
             historyStore,
@@ -467,6 +480,82 @@ describe('assessment history API', () => {
             meta: {
                 requestId: 'request-123',
             },
+        });
+    });
+
+    it('keeps foreign and missing manual records isolated by Cognito subject', async () => {
+        const historyStore = fakeHistoryStore({
+            sourceAssessments: {
+                [MANUAL_SOURCE_1]: [completedAssessment({
+                    sourceKey: MANUAL_SOURCE_1,
+                    sourceType: 'manual',
+                })],
+                [MANUAL_SOURCE_2]: [completedAssessment({
+                    sourceKey: MANUAL_SOURCE_2,
+                    sourceType: 'manual',
+                })],
+            },
+        });
+        const manualWineClient = createManualWineReadClient([
+            manualWineItem({
+                userId: 'foreign-user',
+                sourceKey: MANUAL_SOURCE_1,
+                name: 'Foreign cellar secret',
+            }),
+        ]);
+        const manualWineStore = createManualWineStore({
+            client: manualWineClient,
+            userDataTableName: 'UserData',
+        });
+        const handler = handlerFor({
+            historyStore,
+            getManualWineBySourceKey: input =>
+                manualWineStore.getManualWineBySourceKey(input),
+        });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const foreignResponse = await handler(
+            request('GET /v1/assessed-wines/{sourceKey}', {
+                pathParameters: {
+                    sourceKey: MANUAL_SOURCE_1,
+                },
+                headers: {
+                    'x-user-id': 'foreign-user',
+                },
+            })
+        );
+        const missingResponse = await handler(
+            request('GET /v1/assessed-wines/{sourceKey}', {
+                pathParameters: {
+                    sourceKey: MANUAL_SOURCE_2,
+                },
+            })
+        );
+
+        expect(foreignResponse.statusCode).toBe(500);
+        expect(missingResponse.statusCode).toBe(500);
+        expect(parseBody(foreignResponse).error.code).toBe('INTERNAL_ERROR');
+        expect(parseBody(missingResponse).error.code).toBe('INTERNAL_ERROR');
+        expect(foreignResponse.body).not.toContain('Foreign cellar secret');
+        expect(manualWineClient.send.mock.calls.map(
+            ([command]) => command.input.Key,
+        )).toEqual([
+            {
+                pk: 'USER#authenticated-user',
+                sk: 'MANUAL_WINE#11111111-1111-4111-8111-111111111111',
+            },
+            {
+                pk: 'USER#authenticated-user',
+                sk: 'MANUAL_WINE#22222222-2222-4222-8222-222222222222',
+            },
+        ]);
+        expect(historyStore.listCompletedAssessmentsBySource).toHaveBeenCalledWith({
+            userId: 'authenticated-user',
+            sourceKey: MANUAL_SOURCE_1,
+        });
+        expect(historyStore.listCompletedAssessmentsBySource).toHaveBeenCalledWith({
+            userId: 'authenticated-user',
+            sourceKey: MANUAL_SOURCE_2,
         });
     });
 
@@ -935,3 +1024,57 @@ const retailerListing = ({
     isCurrent,
     price,
 });
+
+const createManualWineReadClient = items => {
+    const recordsByKey = new Map(items.map(item => [
+        `${ item.pk }\u0000${ item.sk }`,
+        item,
+    ]));
+
+    return {
+        send: vi.fn(command => {
+            if (!(command instanceof GetCommand)) {
+                throw new Error('Expected a manual-wine GetCommand');
+            }
+
+            return Promise.resolve({
+                Item: recordsByKey.get(
+                    `${ command.input.Key.pk }\u0000${ command.input.Key.sk }`,
+                ),
+            });
+        }),
+    };
+};
+
+const manualWineItem = ({
+    userId = 'authenticated-user',
+    sourceKey,
+    name,
+    vintage = 'NV',
+    status = 'active',
+}) => {
+    const manualWineId = sourceKey.slice('manual:'.length);
+    const isActive = status === 'active';
+
+    return {
+        pk: `USER#${ userId }`,
+        sk: `MANUAL_WINE#${ manualWineId }`,
+        entityType: 'ManualWine',
+        userId,
+        manualWineId,
+        source: {
+            type: 'manual',
+            key: sourceKey,
+        },
+        sourceKey,
+        name,
+        vintage,
+        description: 'Manual description',
+        status,
+        isActive,
+        deletedAt: isActive ? null : '2026-07-23T13:00:00.000Z',
+        sourceHash: 'source-hash',
+        createdAt: '2026-07-23T10:00:00.000Z',
+        updatedAt: '2026-07-23T13:00:00.000Z',
+    };
+};
