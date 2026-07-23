@@ -23,6 +23,7 @@ Small, well-scoped implementation tasks may be completed directly. Agents should
 ## Repository structure
 
 - `infra/` — AWS CDK infrastructure.
+- `docs/architecture/` — agreed application architecture and public contracts.
 - `src/domain/` — pure domain logic only.
 - `src/state/` — AWS state/integration adapters such as DynamoDB stores, SQS queue adapters, and SNS notifiers.
 - `src/workers/` — Lambda workers and worker-specific integrations.
@@ -32,6 +33,9 @@ Small, well-scoped implementation tasks may be completed directly. Agents should
 - `src/ui/` — frontend.
 - `test/` — unit tests. The folder structure should recursively mirror `src/`.
 - `old/` — historical reference only.
+
+Before changing the authenticated web application architecture, public API routes, palate-profile or manual-wine schemas, assessment presentation/freshness semantics, or frontend assessment polling, read
+`docs/architecture/authenticated-web-app-api-contracts.md`. Treat those decisions as established contracts. If an implementation ticket cannot satisfy them, stop and propose the smallest contract change before changing either the document or implementation.
 
 ## npm and workspace rules
 
