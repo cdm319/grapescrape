@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { EmptyState, InlineBanner, StatusBadge } from "../components/Primitives";
 
-function PageHeading({
+export function PageHeading({
   eyebrow,
   title,
   description,
@@ -116,18 +116,6 @@ export function HistoryPage() {
       description="Revisit assessments while keeping fit and freshness easy to distinguish."
       emptyTitle="Your history is on its way"
       emptyMessage="Assessed-wine history will be connected in its dedicated feature ticket."
-    />
-  );
-}
-
-export function AssessWinePage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="A bottle of your own"
-      title="Assess a wine"
-      description="Add a wine that is not in retailer stock and assess it against your current palate."
-      emptyTitle="Manual assessment is on its way"
-      emptyMessage="The manual-wine workflow will be connected once its API is available."
     />
   );
 }

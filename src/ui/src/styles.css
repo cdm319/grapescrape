@@ -160,6 +160,15 @@ p {
   color: var(--ink);
 }
 
+.button--danger {
+  background: var(--error);
+  color: white;
+}
+
+.button--danger:hover:not(:disabled) {
+  background: #8e372c;
+}
+
 .button--quiet {
   min-height: 38px;
   padding-inline: 10px;
@@ -456,7 +465,8 @@ p {
   font-weight: 600;
 }
 
-.form-field input {
+.form-field input,
+.form-field textarea {
   width: 100%;
   min-height: 44px;
   padding: 9px 12px;
@@ -466,7 +476,14 @@ p {
   color: var(--ink);
 }
 
-.form-field input:focus {
+.form-field textarea {
+  min-height: 132px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
   border-color: var(--accent);
   outline: 3px solid color-mix(in srgb, var(--accent) 16%, transparent);
 }
@@ -617,6 +634,164 @@ p {
   animation: drawer-in 180ms ease-out both;
 }
 
+.manual-wines-page {
+  gap: 24px;
+}
+
+.manual-wine-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.5fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.manual-wine-create,
+.manual-wine-list {
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid rgba(27, 29, 28, 0.08);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.manual-wine-create {
+  position: sticky;
+  top: 94px;
+}
+
+.section-heading {
+  margin-bottom: 22px;
+}
+
+.section-heading h2 {
+  margin: 5px 0 8px;
+  font: 400 1.8rem/1.15 "Instrument Serif", Georgia, serif;
+}
+
+.section-heading p:last-child {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+
+.section-heading--list {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.section-heading--list > div {
+  min-width: 0;
+}
+
+.manual-wine-count {
+  flex: none;
+  color: var(--ink-muted);
+  font: 500 0.75rem/1.4 "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+}
+
+.manual-wine-create form,
+.manual-wine-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.identity-note {
+  margin: -5px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: #34514b;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.form-actions,
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.form-actions--end {
+  justify-content: flex-end;
+}
+
+.manual-wine-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.manual-wine-cards .wine-card {
+  box-shadow: 0 12px 32px -28px rgba(20, 25, 23, 0.52);
+}
+
+.manual-wine-cards .wine-card__aside {
+  justify-self: end;
+}
+
+.assessment-headline {
+  margin: 0 0 14px !important;
+  color: var(--ink) !important;
+  font: italic 1.02rem/1.5 "Instrument Serif", Georgia, serif;
+}
+
+.assessment-status {
+  margin: 0 0 14px !important;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--warning-soft);
+  color: #70491b !important;
+  font-size: 0.86rem;
+}
+
+.assessment-status--complete {
+  background: var(--accent-soft);
+  color: #34514b !important;
+}
+
+.assessment-status--error {
+  background: var(--error-soft);
+  color: #73332a !important;
+}
+
+.locked-identity {
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+
+.locked-identity strong {
+  display: block;
+  margin: 5px 0 7px;
+  font: 400 1.5rem/1.15 "Instrument Serif", Georgia, serif;
+}
+
+.locked-identity strong span {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.locked-identity p:last-child {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.confirmation-content {
+  display: grid;
+  gap: 18px;
+  padding-top: 8px;
+}
+
+.confirmation-content > p {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
 .session-page {
   display: grid;
   min-height: 100vh;
@@ -745,6 +920,14 @@ p {
   .foundation-card--feature {
     grid-column: 1 / -1;
   }
+
+  .manual-wine-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-wine-create {
+    position: static;
+  }
 }
 
 @media (max-width: 600px) {
@@ -831,6 +1014,24 @@ p {
   .wine-card__body,
   .wine-card__aside {
     grid-column: 1;
+  }
+
+  .manual-wine-create,
+  .manual-wine-list {
+    padding: 18px;
+  }
+
+  .section-heading--list {
+    align-items: flex-start;
+  }
+
+  .manual-wine-cards .wine-card__aside {
+    justify-self: start;
+  }
+
+  .form-actions .button,
+  .card-actions .button {
+    width: 100%;
   }
 
   .toast {
