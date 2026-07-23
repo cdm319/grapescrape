@@ -50,6 +50,40 @@ const wine = {
     description: 'Ripe and supple'
 };
 
+const palateProfile = {
+    pk: 'USER#user-1',
+    sk: 'PALATE_PROFILE#7',
+    entityType: 'PalateProfile',
+    userId: 'user-1',
+    palateProfileVersion: 7,
+    palateProfile: {
+        stylePreferences: {
+            body: { preferred: ['full'], avoided: ['light'] },
+            fruitRipeness: { preferred: ['ripe'], avoided: ['underripe'] },
+            fruitCharacter: { preferred: ['black_fruit'], avoided: [] },
+            texture: { preferred: ['plush'], avoided: ['thin'] },
+            oakInfluence: { preferred: ['moderate'], avoided: ['none_detected'] },
+            tannin: { preferred: ['moderate_plus'], avoided: ['firm_or_drying'] },
+            acidity: { preferred: ['balanced'], avoided: ['sharp'] },
+            development: { preferred: ['ready_to_drink'], avoided: [] },
+            styleTags: { preferred: ['polished'], avoided: ['rustic'] }
+        },
+        wineExamples: [{
+            name: 'Example Estate',
+            vintage: '2019',
+            sentiment: 'enjoyed',
+            notes: 'Ripe fruit and a plush texture.'
+        }]
+    },
+    createdAt: '2026-07-23T10:30:00.000Z',
+    updatedAt: '2026-07-23T10:30:00.000Z',
+    currentPointer: {
+        pk: 'USER#user-1',
+        sk: 'CURRENT_PALATE_PROFILE',
+        palateProfileVersion: 7
+    }
+};
+
 describe('createOpenAiWineAssessmentProvider', () => {
     beforeEach(() => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -60,7 +94,7 @@ describe('createOpenAiWineAssessmentProvider', () => {
         vi.restoreAllMocks();
     });
 
-    it('uses the Responses API with strict structured output and returns the parsed assessment', async () => {
+    it('uses strict structured output with the ordered prompt, complete palate context and wine snapshot', async () => {
         vi.stubEnv('OPENAI_MODEL', 'gpt-test');
         vi.stubEnv('OPENAI_REASONING_EFFORT', 'medium');
         vi.stubEnv('OPENAI_TEXT_VERBOSITY', 'medium');
@@ -78,10 +112,7 @@ describe('createOpenAiWineAssessmentProvider', () => {
 
         const result = await provider.assessWine({
             wine,
-            palateProfile: {
-                version: 7,
-                summary: 'Likes ripe plush reds'
-            }
+            palateProfile
         });
 
         expect(result).toEqual(assessment);
@@ -103,10 +134,7 @@ describe('createOpenAiWineAssessmentProvider', () => {
                     role: 'user',
                     content: JSON.stringify({
                         task: 'Use this palate profile for all following wine assessment.',
-                        palateProfile: {
-                            version: 7,
-                            summary: 'Likes ripe plush reds'
-                        }
+                        palateProfile
                     })
                 },
                 {
