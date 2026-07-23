@@ -208,6 +208,66 @@ export class GrapeScrapeFutureStack extends Stack {
             sortKey: { name: 'gsi2sk', type: dynamodb.AttributeType.STRING },
         });
 
+        const manualWinesFunction = new NodejsFunction(this, 'ManualWinesFunction', {
+            functionName: 'grapescrape-manual-wines-api',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/manualWines.js'),
+            handler: 'handler',
+            memorySize: 128,
+            timeout: Duration.seconds(5),
+            environment: {
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+                ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+            },
+        });
+
+        manualWinesFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                'dynamodb:GetItem',
+                'dynamodb:Query',
+                'dynamodb:UpdateItem',
+            ],
+            resources: [userDataTable.tableArn],
+        }));
+        manualWinesFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:PutItem'],
+            resources: [userDataTable.tableArn],
+            conditions: {
+                StringEquals: {
+                    'dynamodb:EnclosingOperation': 'TransactWriteItems',
+                },
+            },
+        }));
+        manualWinesFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:Query'],
+            resources: [`${ assessmentsTable.tableArn }/index/GSI2`],
+        }));
+
+        const manualWinesIntegration =
+            new apigatewayv2Integrations.HttpLambdaIntegration(
+                'ManualWinesIntegration',
+                manualWinesFunction,
+            );
+
+        httpApi.addRoutes({
+            path: '/v1/manual-wines',
+            methods: [
+                apigatewayv2.HttpMethod.GET,
+                apigatewayv2.HttpMethod.POST,
+            ],
+            integration: manualWinesIntegration,
+        });
+        httpApi.addRoutes({
+            path: '/v1/manual-wines/{manualWineId}',
+            methods: [
+                apigatewayv2.HttpMethod.GET,
+                apigatewayv2.HttpMethod.PATCH,
+                apigatewayv2.HttpMethod.DELETE,
+            ],
+            integration: manualWinesIntegration,
+        });
+
         const wineStockTable = new dynamodb.Table(this, 'WineStockTable', {
             tableName: 'grapescrape-wine-stock',
             partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
