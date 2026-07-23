@@ -176,6 +176,17 @@ describe('assessment history API', () => {
             RETAILER_SOURCE_1,
         ]);
 
+        const unhighlightedResponse = await handlerFor({ historyStore })(
+            request('GET /v1/assessed-wines', {
+                queryStringParameters: {
+                    highlight: 'false',
+                },
+            })
+        );
+
+        expect(parseBody(unhighlightedResponse).data.items.map(item => item.sourceKey))
+            .toEqual([RETAILER_SOURCE_2]);
+
         const proseSearch = await handlerFor({ historyStore })(
             request('GET /v1/assessed-wines', {
                 queryStringParameters: {
@@ -244,6 +255,7 @@ describe('assessment history API', () => {
                 queryStringParameters: {
                     sort: 'name',
                     direction: 'asc',
+                    highlight: 'false',
                     limit: '2',
                 },
             })
@@ -259,6 +271,7 @@ describe('assessment history API', () => {
                 queryStringParameters: {
                     sort: 'name',
                     direction: 'asc',
+                    highlight: 'false',
                     limit: '2',
                     cursor: firstBody.meta.nextCursor,
                 },
@@ -270,11 +283,28 @@ describe('assessment history API', () => {
             .toEqual(['Charlie']);
         expect(secondBody.meta.nextCursor).toBeNull();
 
+        const mismatchedHighlightResponse = await handlerFor({ historyStore })(
+            request('GET /v1/assessed-wines', {
+                queryStringParameters: {
+                    sort: 'name',
+                    direction: 'asc',
+                    highlight: 'true',
+                    limit: '2',
+                    cursor: firstBody.meta.nextCursor,
+                },
+            })
+        );
+
+        expect(mismatchedHighlightResponse.statusCode).toBe(400);
+        expect(parseBody(mismatchedHighlightResponse).error.code)
+            .toBe('INVALID_CURSOR');
+
         const mismatchedResponse = await handlerFor({ historyStore })(
             request('GET /v1/assessed-wines', {
                 queryStringParameters: {
                     sort: 'confidence',
                     direction: 'asc',
+                    highlight: 'false',
                     limit: '2',
                     cursor: firstBody.meta.nextCursor,
                 },
