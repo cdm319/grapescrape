@@ -40,8 +40,13 @@ const SORTS = new Set([
 const ALLOWED_QUERY_PARAMETERS = new Set([
     'q',
     'retailerId',
+    'region',
+    'grape',
+    'minPrice',
+    'maxPrice',
     'fit',
     'confidence',
+    'highlight',
     'freshness',
     'sort',
     'direction',
@@ -68,17 +73,34 @@ export const parseCatalogueQuery = queryStringParameters => {
 
     const q = parseSearchQuery(parameters.q);
     const retailerId = parseOptionalNonEmptyString(parameters.retailerId, 'retailerId');
+    const region = parseIdentityFilter(parameters.region, 'region');
+    const grape = parseIdentityFilter(parameters.grape, 'grape');
+    const minPrice = parsePriceBoundary(parameters.minPrice, 'minPrice');
+    const maxPrice = parsePriceBoundary(parameters.maxPrice, 'maxPrice');
     const fit = parseEnumList(parameters.fit, 'fit', new Set(Object.keys(FIT_RANKS)));
     const confidence = parseEnumList(
         parameters.confidence,
         'confidence',
         new Set(Object.keys(CONFIDENCE_RANKS)),
     );
+    const highlight = parseBoolean(parameters.highlight, 'highlight');
     const freshness = parseEnumList(
         parameters.freshness,
         'freshness',
         FRESHNESS_STATUSES,
     );
+
+    if (
+        minPrice !== undefined
+        && maxPrice !== undefined
+        && minPrice > maxPrice
+    ) {
+        throw validationError(
+            'minPrice',
+            'must be less than or equal to maxPrice',
+        );
+    }
+
     const sort = parameters.sort ?? 'name';
 
     if (!SORTS.has(sort)) {
@@ -95,8 +117,13 @@ export const parseCatalogueQuery = queryStringParameters => {
     const queryKey = JSON.stringify({
         q: q ? normaliseSearchText(q) : null,
         retailerId: retailerId ?? null,
+        region: region ? normaliseSearchText(region) : null,
+        grape: grape ? normaliseSearchText(grape) : null,
+        minPrice: minPrice ?? null,
+        maxPrice: maxPrice ?? null,
         fit: fit ? [...fit].sort() : null,
         confidence: confidence ? [...confidence].sort() : null,
+        highlight: highlight ?? null,
         freshness: freshness ? [...freshness].sort() : null,
         sort,
         direction,
@@ -105,8 +132,13 @@ export const parseCatalogueQuery = queryStringParameters => {
     return {
         q,
         retailerId,
+        region,
+        grape,
+        minPrice,
+        maxPrice,
         fit,
         confidence,
+        highlight,
         freshness,
         sort,
         direction,
@@ -153,6 +185,62 @@ const parseOptionalNonEmptyString = (value, field) => {
     }
 
     return value;
+};
+
+const parseIdentityFilter = (value, field) => {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    if (typeof value !== 'string') {
+        throw validationError(field, 'must be a string between 1 and 120 characters');
+    }
+
+    const filter = value.trim();
+
+    if (filter.length < 1 || filter.length > 120) {
+        throw validationError(field, 'must be between 1 and 120 characters');
+    }
+
+    return filter;
+};
+
+const parsePriceBoundary = (value, field) => {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    if (
+        typeof value !== 'string'
+        || !/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(value)
+    ) {
+        throw validationError(
+            field,
+            'must be a non-negative GBP amount with at most two decimal places',
+        );
+    }
+
+    const amount = Number(value);
+
+    if (!Number.isFinite(amount)) {
+        throw validationError(
+            field,
+            'must be a non-negative GBP amount with at most two decimal places',
+        );
+    }
+
+    return amount;
+};
+
+const parseBoolean = (value, field) => {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+
+    throw validationError(field, 'must be true or false');
 };
 
 const parseEnumList = (value, field, allowedValues) => {
@@ -235,6 +323,44 @@ const matchesCatalogueQuery = (item, query) => {
     }
 
     if (query.retailerId && item.retailerId !== query.retailerId) {
+        return false;
+    }
+
+    if (
+        query.region
+        && !normaliseSearchText(item.region).includes(
+            normaliseSearchText(query.region),
+        )
+    ) {
+        return false;
+    }
+
+    if (
+        query.grape
+        && !normaliseSearchText(item.grape).includes(
+            normaliseSearchText(query.grape),
+        )
+    ) {
+        return false;
+    }
+
+    const price = Number(item.currentPrice.amount);
+
+    if (query.minPrice !== undefined && price < query.minPrice) {
+        return false;
+    }
+
+    if (query.maxPrice !== undefined && price > query.maxPrice) {
+        return false;
+    }
+
+    if (
+        query.highlight !== undefined
+        && (
+            !item.latestAssessment
+            || item.latestAssessment.highlight !== query.highlight
+        )
+    ) {
         return false;
     }
 

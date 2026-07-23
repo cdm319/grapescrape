@@ -18,6 +18,7 @@ const createWine = ({
     vintage = 2020,
     price = '25.50',
     region = 'Bordeaux',
+    grape = 'Merlot',
     sourceHash = `hash-${ id }`,
     firstSeenAt = '2026-07-20T10:00:00.000Z',
     lastSeenAt = '2026-07-23T10:00:00.000Z',
@@ -32,7 +33,7 @@ const createWine = ({
     vintage,
     price,
     region,
-    grape: 'Merlot',
+    grape,
     alcohol: '13.5%',
     description: 'Ripe fruit and polished tannins.',
     sourceHash,
@@ -348,6 +349,107 @@ describe('catalogue API', () => {
         ]);
     });
 
+    it('applies approved identity, inclusive price and highlight filters', async () => {
+        const highlighted = createWine({
+            id: 'highlighted',
+            name: 'Highlighted Wine',
+            price: '20.00',
+            region: 'North Bordeaux',
+            grape: 'Cabernet and Merlot',
+        });
+        const unhighlighted = createWine({
+            id: 'unhighlighted',
+            name: 'Unhighlighted Wine',
+            price: '30.00',
+            region: 'Rioja',
+            grape: 'Tempranillo',
+        });
+        const unassessed = createWine({
+            id: 'unassessed',
+            name: 'Unassessed Wine',
+            price: '20.00',
+            region: 'Bordeaux',
+            grape: 'Merlot',
+        });
+        const store = createFakeStore({
+            wines: [highlighted, unhighlighted, unassessed],
+            assessments: {
+                [highlighted.sourceKey]: createAssessment({
+                    sourceKey: highlighted.sourceKey,
+                    sourceHash: highlighted.sourceHash,
+                    highlight: true,
+                }),
+                [unhighlighted.sourceKey]: createAssessment({
+                    sourceKey: unhighlighted.sourceKey,
+                    sourceHash: unhighlighted.sourceHash,
+                    highlight: false,
+                }),
+            },
+        });
+        const handler = createCatalogueHandler({ catalogueStore: store });
+
+        const filteredResponse = await handler(listEvent({
+            region: ' bordeaux ',
+            grape: 'MERLOT',
+            minPrice: '20',
+            maxPrice: '20.00',
+            highlight: 'true',
+        }));
+
+        expect(parseBody(filteredResponse).data.items.map(item => item.sourceKey))
+            .toEqual([highlighted.sourceKey]);
+
+        const unhighlightedResponse = await handler(listEvent({
+            highlight: 'false',
+        }));
+
+        expect(
+            parseBody(unhighlightedResponse).data.items.map(item => item.sourceKey)
+        ).toEqual([unhighlighted.sourceKey]);
+    });
+
+    it.each([
+        {
+            query: { region: ' ' },
+            field: 'region',
+        },
+        {
+            query: { grape: 'x'.repeat(121) },
+            field: 'grape',
+        },
+        {
+            query: { minPrice: '-1' },
+            field: 'minPrice',
+        },
+        {
+            query: { maxPrice: '1.234' },
+            field: 'maxPrice',
+        },
+        {
+            query: { highlight: 'yes' },
+            field: 'highlight',
+        },
+        {
+            query: { minPrice: '30', maxPrice: '20' },
+            field: 'minPrice',
+        },
+    ])('rejects invalid approved filter values for $field', async ({
+        query,
+        field,
+    }) => {
+        const response = await createCatalogueHandler({
+            catalogueStore: createFakeStore(),
+        })(listEvent(query));
+
+        expect(response.statusCode).toBe(400);
+        expect(parseBody(response).error).toMatchObject({
+            code: 'VALIDATION_FAILED',
+            details: [{
+                field: `query.${ field }`,
+            }],
+        });
+    });
+
     it.each([
         {
             query: { sort: 'fit', direction: 'asc' },
@@ -408,6 +510,7 @@ describe('catalogue API', () => {
         const firstResponse = await handler(listEvent({
             sort: 'name',
             direction: 'asc',
+            region: 'bordeaux',
             limit: '2',
         }));
         const firstBody = parseBody(firstResponse);
@@ -421,6 +524,7 @@ describe('catalogue API', () => {
         const secondResponse = await handler(listEvent({
             sort: 'name',
             direction: 'asc',
+            region: 'bordeaux',
             limit: '2',
             cursor: firstBody.meta.nextCursor,
         }));
@@ -436,9 +540,22 @@ describe('catalogue API', () => {
             },
         });
 
+        const mismatchedFilterResponse = await handler(listEvent({
+            sort: 'name',
+            direction: 'asc',
+            region: 'rioja',
+            limit: '2',
+            cursor: firstBody.meta.nextCursor,
+        }));
+
+        expect(mismatchedFilterResponse.statusCode).toBe(400);
+        expect(parseBody(mismatchedFilterResponse).error.code)
+            .toBe('INVALID_CURSOR');
+
         const invalidResponse = await handler(listEvent({
             sort: 'price',
             direction: 'asc',
+            region: 'bordeaux',
             limit: '2',
             cursor: firstBody.meta.nextCursor,
         }));
@@ -600,12 +717,12 @@ describe('catalogue API', () => {
         });
 
         const undocumentedResponse = await handler(listEvent({
-            region: 'Bordeaux',
+            country: 'France',
         }));
         expect(parseBody(undocumentedResponse).error).toMatchObject({
             code: 'INVALID_REQUEST',
             details: [{
-                field: 'query.region',
+                field: 'query.country',
                 reason: 'is not supported',
             }],
         });
