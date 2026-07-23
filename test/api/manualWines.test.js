@@ -225,18 +225,18 @@ describe('manual wines API handler', () => {
     });
 
     it.each([
+        '',
         'not-a-cursor',
         '%%%invalid-base64url%%%',
         'a'.repeat(2_049),
     ])('rejects malformed cursor %s', async cursor => {
-        store.listActiveManualWines.mockResolvedValue([manualWine]);
-
         const response = await handler(apiEvent({
             routeKey: 'GET /v1/manual-wines',
             queryStringParameters: { cursor },
         }));
 
         expect(errorCode(response)).toBe('INVALID_CURSOR');
+        expect(store.listActiveManualWines).not.toHaveBeenCalled();
     });
 
     it('creates a manual wine for the authenticated subject without requesting assessment', async () => {
@@ -308,6 +308,28 @@ describe('manual wines API handler', () => {
         expect(response.statusCode).toBe(409);
         expect(errorCode(response)).toBe('MANUAL_WINE_ALREADY_EXISTS');
         expect(response.body).not.toContain('raw identity');
+    });
+
+    it('does not create a wine when response freshness cannot be read', async () => {
+        store.getCurrentPalateProfileVersion.mockRejectedValue(
+            new Error('profile read failed'),
+        );
+        const consoleError = vi
+            .spyOn(console, 'error')
+            .mockImplementation(() => {});
+
+        const response = await handler(apiEvent({
+            routeKey: 'POST /v1/manual-wines',
+            body: JSON.stringify({
+                name: 'Cellar Example',
+                vintage: 'NV',
+                description: '',
+            }),
+        }));
+
+        expect(errorCode(response)).toBe('INTERNAL_ERROR');
+        expect(store.createManualWine).not.toHaveBeenCalled();
+        consoleError.mockRestore();
     });
 
     it('gets an active wine by the literal API Gateway UUID parameter', async () => {

@@ -257,6 +257,8 @@ const createManualWine = async ({
         throw new Error('Generated manual wine ID is not a UUID');
     }
 
+    const currentPalateProfileVersion =
+        await manualWineStore.getCurrentPalateProfileVersion(userId);
     const sourceHash = createManualWineSourceHash(parsed.value);
     const manualWine = await manualWineStore.createManualWine({
         userId,
@@ -265,8 +267,6 @@ const createManualWine = async ({
         identity: createManualWineIdentity(parsed.value),
         sourceHash,
     });
-    const currentPalateProfileVersion =
-        await manualWineStore.getCurrentPalateProfileVersion(userId);
 
     return successResponse({
         statusCode: 201,

@@ -152,11 +152,7 @@ export const createManualWineStore = ({
                         isConditionalConflict(error)
                         || attempt === MAX_CREATE_ATTEMPTS
                     ) {
-                        throw createExpectedError({
-                            name: 'ManualWineCreateConflictError',
-                            userId,
-                            manualWineId,
-                        });
+                        throw error;
                     }
                 }
             }
@@ -422,8 +418,7 @@ export const createManualWineAssessmentReadStore = ({
 };
 
 export const isManualWineAlreadyExists = error =>
-    error?.name === 'ManualWineAlreadyExistsError'
-    || error?.name === 'ManualWineCreateConflictError';
+    error?.name === 'ManualWineAlreadyExistsError';
 
 export const isManualWineNotFound = error =>
     error?.name === 'ManualWineNotFoundError';

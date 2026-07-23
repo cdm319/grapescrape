@@ -80,20 +80,25 @@ export const parseManualWineListQuery = queryStringParameters => {
         });
     }
 
+    const value = {
+        q,
+        normalizedQ: q === undefined
+            ? undefined
+            : normaliseManualWineName(q),
+        sort,
+        direction,
+        limit,
+    };
+
+    if (errors.length === 0 && query.cursor !== undefined) {
+        value.cursor = parseCursor(query.cursor, value);
+    }
+
     return {
         valid: errors.length === 0,
         validationFailed: validationFailed && errors.length === 1,
         errors,
-        value: {
-            q,
-            normalizedQ: q === undefined
-                ? undefined
-                : normaliseManualWineName(q),
-            sort,
-            direction,
-            limit,
-            cursor: query.cursor,
-        },
+        value,
     };
 };
 
@@ -105,9 +110,7 @@ export const paginateManualWines = (manualWines, query) => {
         : manualWines;
     const sorted = [...filtered].sort((left, right) =>
         compareManualWines(left, right, query));
-    const cursor = query.cursor
-        ? parseCursor(query.cursor, query)
-        : undefined;
+    const cursor = query.cursor;
     const startIndex = cursor
         ? findPageStart(sorted, cursor, query)
         : 0;

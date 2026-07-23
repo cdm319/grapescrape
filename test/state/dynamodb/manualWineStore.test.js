@@ -219,19 +219,56 @@ describe('createManualWineStore', () => {
                 .mockResolvedValueOnce({}),
         };
 
-        await expect(createStore(client).createManualWine({
-            userId: 'user-1',
-            manualWineId,
-            name: 'Cellar Example',
-            vintage: 'NV',
-            description: '',
-            identity: 'cellar example\u0000NV',
-            sourceHash: 'source-hash',
-        })).rejects.toSatisfy(isManualWineAlreadyExists);
+        try {
+            await createStore(client).createManualWine({
+                userId: 'user-1',
+                manualWineId,
+                name: 'Cellar Example',
+                vintage: 'NV',
+                description: '',
+                identity: 'cellar example\u0000NV',
+                sourceHash: 'source-hash',
+            });
+            throw new Error('Expected transaction conflicts to reject');
+        } catch (error) {
+            expect(error).toBe(conflict);
+            expect(isManualWineAlreadyExists(error)).toBe(false);
+        }
         expect(client.send).toHaveBeenCalledTimes(6);
         expect(client.send.mock.calls.filter(
             ([command]) => command instanceof TransactWriteCommand,
         )).toHaveLength(3);
+    });
+
+    it('does not report an unrelated conditional conflict as a duplicate', async () => {
+        const conflict = new Error('conditional conflict');
+        conflict.name = 'TransactionCanceledException';
+        conflict.CancellationReasons = [
+            { Code: 'ConditionalCheckFailed' },
+            { Code: 'None' },
+        ];
+        const client = {
+            send: vi.fn()
+                .mockRejectedValueOnce(conflict)
+                .mockResolvedValueOnce({}),
+        };
+
+        try {
+            await createStore(client).createManualWine({
+                userId: 'user-1',
+                manualWineId,
+                name: 'Cellar Example',
+                vintage: 'NV',
+                description: '',
+                identity: 'cellar example\u0000NV',
+                sourceHash: 'source-hash',
+            });
+            throw new Error('Expected conditional conflict to reject');
+        } catch (error) {
+            expect(error).toBe(conflict);
+            expect(isManualWineAlreadyExists(error)).toBe(false);
+        }
+        expect(client.send).toHaveBeenCalledTimes(2);
     });
 
     it('queries only the user manual-wine key range and returns active records', async () => {
