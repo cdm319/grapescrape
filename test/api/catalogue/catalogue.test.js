@@ -391,8 +391,8 @@ describe('catalogue API', () => {
         const filteredResponse = await handler(listEvent({
             region: ' bordeaux ',
             grape: 'MERLOT',
-            minPrice: '20',
-            maxPrice: '20.00',
+            minPrice: '020',
+            maxPrice: '020.00',
             highlight: 'true',
         }));
 
@@ -431,6 +431,13 @@ describe('catalogue API', () => {
         },
         {
             query: { minPrice: '30', maxPrice: '20' },
+            field: 'minPrice',
+        },
+        {
+            query: {
+                minPrice: '9007199254740993',
+                maxPrice: '9007199254740992',
+            },
             field: 'minPrice',
         },
     ])('rejects invalid approved filter values for $field', async ({
@@ -551,6 +558,26 @@ describe('catalogue API', () => {
         expect(mismatchedFilterResponse.statusCode).toBe(400);
         expect(parseBody(mismatchedFilterResponse).error.code)
             .toBe('INVALID_CURSOR');
+
+        for (const changedFilter of [
+            { grape: 'cabernet' },
+            { minPrice: '20' },
+            { maxPrice: '30' },
+            { highlight: 'false' },
+        ]) {
+            const mismatchedApprovedFilterResponse = await handler(listEvent({
+                sort: 'name',
+                direction: 'asc',
+                region: 'bordeaux',
+                limit: '2',
+                cursor: firstBody.meta.nextCursor,
+                ...changedFilter,
+            }));
+
+            expect(mismatchedApprovedFilterResponse.statusCode).toBe(400);
+            expect(parseBody(mismatchedApprovedFilterResponse).error.code)
+                .toBe('INVALID_CURSOR');
+        }
 
         const invalidResponse = await handler(listEvent({
             sort: 'price',

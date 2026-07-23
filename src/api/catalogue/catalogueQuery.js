@@ -93,7 +93,7 @@ export const parseCatalogueQuery = queryStringParameters => {
     if (
         minPrice !== undefined
         && maxPrice !== undefined
-        && minPrice > maxPrice
+        && comparePence(minPrice, maxPrice) > 0
     ) {
         throw validationError(
             'minPrice',
@@ -212,7 +212,7 @@ const parsePriceBoundary = (value, field) => {
 
     if (
         typeof value !== 'string'
-        || !/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(value)
+        || !/^\d+(?:\.\d{1,2})?$/.test(value)
     ) {
         throw validationError(
             field,
@@ -220,16 +220,7 @@ const parsePriceBoundary = (value, field) => {
         );
     }
 
-    const amount = Number(value);
-
-    if (!Number.isFinite(amount)) {
-        throw validationError(
-            field,
-            'must be a non-negative GBP amount with at most two decimal places',
-        );
-    }
-
-    return amount;
+    return decimalToPence(value);
 };
 
 const parseBoolean = (value, field) => {
@@ -344,13 +335,19 @@ const matchesCatalogueQuery = (item, query) => {
         return false;
     }
 
-    const price = Number(item.currentPrice.amount);
+    const price = decimalToPence(item.currentPrice.amount);
 
-    if (query.minPrice !== undefined && price < query.minPrice) {
+    if (
+        query.minPrice !== undefined
+        && comparePence(price, query.minPrice) < 0
+    ) {
         return false;
     }
 
-    if (query.maxPrice !== undefined && price > query.maxPrice) {
+    if (
+        query.maxPrice !== undefined
+        && comparePence(price, query.maxPrice) > 0
+    ) {
         return false;
     }
 
@@ -440,6 +437,19 @@ const compareStrings = (left, right) => {
     if (left > right) return 1;
     return 0;
 };
+
+const decimalToPence = value => {
+    const [wholePounds, fractionalPounds = ''] = value.split('.');
+    const canonicalPounds = wholePounds.replace(/^0+(?=\d)/, '');
+    const pence = `${ canonicalPounds }${ fractionalPounds.padEnd(2, '0') }`
+        .replace(/^0+(?=\d)/, '');
+
+    return pence;
+};
+
+const comparePence = (left, right) =>
+    left.length - right.length
+    || compareStrings(left, right);
 
 const getSortValue = (item, sort) => {
     if (sort === 'first_seen') return item.firstSeenAt;
