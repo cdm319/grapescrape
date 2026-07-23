@@ -222,6 +222,66 @@ export class GrapeScrapeFutureStack extends Stack {
             sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
         });
 
+        const assessmentHistoryFunction = new NodejsFunction(this, 'AssessmentHistoryFunction', {
+            functionName: 'grapescrape-assessment-history',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/assessmentHistory.js'),
+            handler: 'handler',
+            memorySize: 256,
+            timeout: Duration.seconds(10),
+            environment: {
+                ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+                WINE_STOCK_TABLE_NAME: wineStockTable.tableName,
+            },
+        });
+
+        assessmentHistoryFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:Query'],
+            resources: [
+                assessmentsTable.tableArn,
+                `${ assessmentsTable.tableArn }/index/*`,
+            ],
+        }));
+        assessmentHistoryFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:GetItem'],
+            resources: [
+                userDataTable.tableArn,
+                wineStockTable.tableArn,
+            ],
+        }));
+
+        const assessmentHistoryIntegration =
+            new apigatewayv2Integrations.HttpLambdaIntegration(
+                'AssessmentHistoryIntegration',
+                assessmentHistoryFunction,
+            );
+
+        httpApi.addRoutes({
+            path: '/v1/assessed-wines',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: assessmentHistoryIntegration,
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/assessed-wines/{sourceKey}',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: assessmentHistoryIntegration,
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/assessed-wines/{sourceKey}/assessments',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: assessmentHistoryIntegration,
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/assessed-wines/{sourceKey}/assessments/{assessmentVersion}',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: assessmentHistoryIntegration,
+        });
+
         const assessmentDeadLetterQueue = new sqs.Queue(this, 'AssessmentDeadLetterQueue', {
             queueName: 'grapescrape-assessment-dlq',
             retentionPeriod: Duration.days(14),
