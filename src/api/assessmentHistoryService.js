@@ -266,6 +266,14 @@ const deriveFreshness = ({
 };
 
 const createCurrentPrice = price => {
+    if (
+        price === null
+        || price === undefined
+        || (typeof price === 'string' && price.trim().length === 0)
+    ) {
+        return null;
+    }
+
     const amount = Number(price);
 
     if (!Number.isFinite(amount)) return null;

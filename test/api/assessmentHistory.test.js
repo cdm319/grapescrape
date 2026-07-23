@@ -93,6 +93,30 @@ describe('assessment history API', () => {
         expect(JSON.stringify(body)).not.toContain('rawProviderResponse');
     });
 
+    it.each([null, ''])(
+        'does not fabricate a zero price when a current listing price is %j',
+        async price => {
+            const assessment = completedAssessment({
+                sourceKey: RETAILER_SOURCE_1,
+            });
+            const historyStore = fakeHistoryStore({
+                userAssessments: [assessment],
+                listings: {
+                    [RETAILER_SOURCE_1]: retailerListing({
+                        sourceKey: RETAILER_SOURCE_1,
+                        price,
+                    }),
+                },
+            });
+
+            const response = await handlerFor({ historyStore })(
+                request('GET /v1/assessed-wines')
+            );
+
+            expect(parseBody(response).data.items[0].wine.currentPrice).toBeNull();
+        },
+    );
+
     it('searches identity only and applies canonical source, availability, assessment and freshness filters', async () => {
         const assessments = [
             completedAssessment({
@@ -513,7 +537,7 @@ describe('assessment history API', () => {
         const summaryResponse = await handler(
             request('GET /v1/assessed-wines/{sourceKey}', {
                 pathParameters: {
-                    sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                    sourceKey: RETAILER_SOURCE_1,
                 },
             })
         );
@@ -528,7 +552,7 @@ describe('assessment history API', () => {
         const listResponse = await handler(
             request('GET /v1/assessed-wines/{sourceKey}/assessments', {
                 pathParameters: {
-                    sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                    sourceKey: RETAILER_SOURCE_1,
                 },
                 queryStringParameters: {
                     limit: '2',
@@ -543,7 +567,7 @@ describe('assessment history API', () => {
         const nextListResponse = await handler(
             request('GET /v1/assessed-wines/{sourceKey}/assessments', {
                 pathParameters: {
-                    sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                    sourceKey: RETAILER_SOURCE_1,
                 },
                 queryStringParameters: {
                     limit: '2',
@@ -567,7 +591,7 @@ describe('assessment history API', () => {
                 'GET /v1/assessed-wines/{sourceKey}/assessments/{assessmentVersion}',
                 {
                     pathParameters: {
-                        sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                        sourceKey: RETAILER_SOURCE_1,
                         assessmentVersion: '2',
                     },
                 }
@@ -580,6 +604,44 @@ describe('assessment history API', () => {
         });
     });
 
+    it.each([
+        'retailer:tws:wine%2F1',
+        'retailer:tws:wine/1',
+    ])('uses the API Gateway-decoded source key literally: %s', async sourceKey => {
+        const sourceAssessments = [
+            completedAssessment({
+                sourceKey,
+                assessmentInputKey: `input-${ sourceKey }`,
+            }),
+        ];
+        const historyStore = fakeHistoryStore({
+            sourceAssessments: {
+                [sourceKey]: sourceAssessments,
+            },
+            listings: {
+                [sourceKey]: retailerListing({ sourceKey }),
+            },
+        });
+
+        const response = await handlerFor({ historyStore })(
+            request('GET /v1/assessed-wines/{sourceKey}', {
+                pathParameters: {
+                    sourceKey,
+                },
+            })
+        );
+
+        expect(response.statusCode).toBe(200);
+        expect(parseBody(response).data.sourceKey).toBe(sourceKey);
+        expect(historyStore.listCompletedAssessmentsBySource)
+            .toHaveBeenCalledWith({
+                userId: 'authenticated-user',
+                sourceKey,
+            });
+        expect(historyStore.getRetailerWineBySourceKey)
+            .toHaveBeenCalledWith({ sourceKey });
+    });
+
     it('returns route-specific not-found responses without leaking another user history', async () => {
         const historyStore = fakeHistoryStore();
         const handler = handlerFor({ historyStore });
@@ -587,7 +649,7 @@ describe('assessment history API', () => {
         const summaryResponse = await handler(
             request('GET /v1/assessed-wines/{sourceKey}', {
                 pathParameters: {
-                    sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                    sourceKey: RETAILER_SOURCE_1,
                 },
             })
         );
@@ -596,7 +658,7 @@ describe('assessment history API', () => {
                 'GET /v1/assessed-wines/{sourceKey}/assessments/{assessmentVersion}',
                 {
                     pathParameters: {
-                        sourceKey: encodeURIComponent(RETAILER_SOURCE_1),
+                        sourceKey: RETAILER_SOURCE_1,
                         assessmentVersion: '9',
                     },
                 }

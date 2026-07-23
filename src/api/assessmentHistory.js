@@ -49,14 +49,14 @@ export const createAssessmentHistoryHandler = ({
 
             const query = event.queryStringParameters ?? {};
             const routeKey = event.routeKey;
-            const encodedSourceKey = event.pathParameters?.sourceKey;
+            const pathSourceKey = event.pathParameters?.sourceKey;
 
             if (routeKey === 'GET /v1/assessed-wines') {
                 const page = await service.listAssessedWines({ userId, query });
                 return listResponse(page, requestId);
             }
 
-            const sourceKey = decodeSourceKey(encodedSourceKey);
+            const sourceKey = readSourceKey(pathSourceKey);
 
             if (routeKey === 'GET /v1/assessed-wines/{sourceKey}') {
                 rejectAnyQuery(query);
@@ -130,7 +130,7 @@ export const handler = event => createAssessmentHistoryHandler({
     getManualWineBySourceKey: unconfiguredManualWineReader,
 })(event);
 
-const decodeSourceKey = value => {
+const readSourceKey = value => {
     if (typeof value !== 'string' || value.length === 0) {
         throw new AssessmentHistoryApiError({
             statusCode: 400,
@@ -139,15 +139,7 @@ const decodeSourceKey = value => {
         });
     }
 
-    try {
-        return decodeURIComponent(value);
-    } catch {
-        throw new AssessmentHistoryApiError({
-            statusCode: 400,
-            code: 'INVALID_REQUEST',
-            message: 'The source key is invalid.',
-        });
-    }
+    return value;
 };
 
 const parsePathAssessmentVersion = value => {
