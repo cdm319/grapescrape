@@ -1,3 +1,5 @@
+import { deriveAssessmentFreshness } from '@grapescrape/domain/assessment/deriveAssessmentFreshness';
+
 export const presentManualWine = ({
     manualWine,
     latestAssessment,
@@ -15,8 +17,8 @@ export const presentManualWine = ({
     latestAssessment: latestAssessment
         ? presentAssessment(latestAssessment)
         : null,
-    freshness: deriveFreshness({
-        latestAssessment,
+    freshness: deriveAssessmentFreshness({
+        assessment: latestAssessment,
         currentPalateProfileVersion,
         currentSourceHash: manualWine.sourceHash,
     }),
@@ -44,53 +46,4 @@ const presentAssessment = item => {
         styleProfile: assessment.styleProfile,
         completedAt: item.completedAt,
     };
-};
-
-const deriveFreshness = ({
-    latestAssessment,
-    currentPalateProfileVersion,
-    currentSourceHash,
-}) => {
-    if (!latestAssessment) {
-        return {
-            status: 'unassessed',
-            isCurrent: false,
-            profileChanged: false,
-            sourceChanged: false,
-            assessedPalateProfileVersion: null,
-            currentPalateProfileVersion,
-        };
-    }
-
-    const profileChanged =
-        latestAssessment.palateProfileVersion
-        !== currentPalateProfileVersion;
-    const sourceChanged =
-        latestAssessment.sourceHash
-        !== currentSourceHash;
-
-    return {
-        status: freshnessStatus({
-            profileChanged,
-            sourceChanged,
-        }),
-        isCurrent: !profileChanged && !sourceChanged,
-        profileChanged,
-        sourceChanged,
-        assessedPalateProfileVersion:
-            latestAssessment.palateProfileVersion,
-        currentPalateProfileVersion,
-    };
-};
-
-const freshnessStatus = ({
-    profileChanged,
-    sourceChanged,
-}) => {
-    if (profileChanged && sourceChanged) {
-        return 'palate_profile_and_source_changed';
-    }
-    if (profileChanged) return 'palate_profile_changed';
-    if (sourceChanged) return 'source_changed';
-    return 'current';
 };
