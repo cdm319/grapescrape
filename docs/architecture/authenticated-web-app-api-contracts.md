@@ -707,8 +707,13 @@ Request query:
 | --- | --- |
 | `q` | Optional 1-120 character identity search over name, vintage, retailer and region; never assessment prose |
 | `retailerId` | Optional exact retailer ID |
+| `region` | Optional trimmed 1-120 character normalised case-insensitive substring filter |
+| `grape` | Optional trimmed 1-120 character normalised case-insensitive substring filter |
+| `minPrice` | Optional inclusive non-negative GBP lower bound with at most two decimal places |
+| `maxPrice` | Optional inclusive non-negative GBP upper bound with at most two decimal places |
 | `fit` | Optional comma-separated canonical fit values |
 | `confidence` | Optional comma-separated canonical confidence values |
+| `highlight` | Optional boolean `true` or `false` |
 | `freshness` | Optional comma-separated freshness statuses |
 | `sort` | `first_seen`, `price`, `name`, `fit` or `confidence`; default `name` |
 | `direction` | `asc` or `desc`; default `desc` for `first_seen`, otherwise `asc` |
@@ -717,8 +722,13 @@ Request query:
 
 Only current retailer listings are returned. `first_seen` sorts by
 `firstSeenAt`; catalogue representations always expose both `firstSeenAt` and
-`lastSeenAt`. Fit/confidence filters exclude unassessed wines unless the
-separate `freshness=unassessed` filter is used.
+`lastSeenAt`. `region` and `grape` use the same Unicode NFKC, whitespace and
+case normalisation as identity search before substring matching. Price bounds
+are inclusive, and `minPrice` must not exceed `maxPrice`. Fit/confidence
+filters exclude unassessed wines unless the separate `freshness=unassessed`
+filter is used. Supplying `highlight` always excludes unassessed wines.
+All filters are included in cursor binding, so changing one invalidates an
+existing cursor.
 
 Response: `200` list envelope. Each item contains:
 

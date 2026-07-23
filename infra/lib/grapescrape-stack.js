@@ -188,6 +188,48 @@ export class GrapeScrapeFutureStack extends Stack {
             removalPolicy: RemovalPolicy.RETAIN,
         });
 
+        const palateProfileFunction = new NodejsFunction(this, 'PalateProfileFunction', {
+            functionName: 'grapescrape-palate-profile-api',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/palateProfile.js'),
+            handler: 'handler',
+            memorySize: 128,
+            timeout: Duration.seconds(5),
+            environment: {
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+            },
+        });
+
+        palateProfileFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:GetItem'],
+            resources: [userDataTable.tableArn],
+        }));
+        palateProfileFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                'dynamodb:PutItem',
+                'dynamodb:UpdateItem',
+            ],
+            resources: [userDataTable.tableArn],
+            conditions: {
+                StringEquals: {
+                    'dynamodb:EnclosingOperation': 'TransactWriteItems',
+                },
+            },
+        }));
+
+        httpApi.addRoutes({
+            path: '/v1/palate-profile',
+            methods: [
+                apigatewayv2.HttpMethod.GET,
+                apigatewayv2.HttpMethod.PUT,
+            ],
+            integration: new apigatewayv2Integrations.HttpLambdaIntegration(
+                'PalateProfileIntegration',
+                palateProfileFunction,
+            ),
+        });
+
         const assessmentsTable = new dynamodb.Table(this, 'AssessmentsTable', {
             tableName: 'grapescrape-assessments',
             partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
@@ -280,6 +322,42 @@ export class GrapeScrapeFutureStack extends Stack {
             indexName: 'GSI1',
             partitionKey: { name: 'gsi1pk', type: dynamodb.AttributeType.STRING },
             sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
+        });
+
+        const catalogueFunction = new NodejsFunction(this, 'CatalogueFunction', {
+            functionName: 'grapescrape-catalogue-api',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/catalogue/index.js'),
+            handler: 'handler',
+            memorySize: 128,
+            timeout: Duration.seconds(10),
+            environment: {
+                WINE_STOCK_TABLE_NAME: wineStockTable.tableName,
+                ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+                USER_DATA_TABLE_NAME: userDataTable.tableName,
+            },
+        });
+
+        wineStockTable.grant(catalogueFunction, 'dynamodb:GetItem', 'dynamodb:Query');
+        assessmentsTable.grant(catalogueFunction, 'dynamodb:Query');
+        userDataTable.grant(catalogueFunction, 'dynamodb:GetItem');
+
+        const catalogueIntegration = new apigatewayv2Integrations.HttpLambdaIntegration(
+            'CatalogueIntegration',
+            catalogueFunction,
+        );
+
+        httpApi.addRoutes({
+            path: '/v1/catalogue/wines',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: catalogueIntegration,
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/catalogue/wines/{sourceKey}',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: catalogueIntegration,
         });
 
         const assessmentDeadLetterQueue = new sqs.Queue(this, 'AssessmentDeadLetterQueue', {
