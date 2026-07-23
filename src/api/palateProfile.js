@@ -34,13 +34,14 @@ export const createPalateProfileHandler = ({
         });
     }
 
-    const store = palateProfileStore ?? createPalateProfileStore({
-        client: documentClient,
-        userDataTableName,
-    });
     const method = event?.requestContext?.http?.method;
 
     try {
+        const store = palateProfileStore ?? createPalateProfileStore({
+            client: documentClient,
+            userDataTableName,
+        });
+
         if (method === 'GET') {
             if (hasRequestBody(event)) {
                 return invalidRequest({

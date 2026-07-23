@@ -311,6 +311,27 @@ describe('palate profile API handler', () => {
         );
         consoleError.mockRestore();
     });
+
+    it('returns the shared internal envelope when store configuration is missing', async () => {
+        const consoleError = vi
+            .spyOn(console, 'error')
+            .mockImplementation(() => {});
+        const unconfiguredHandler = createPalateProfileHandler({
+            userDataTableName: '',
+        });
+
+        const response = await unconfiguredHandler(apiEvent({ method: 'GET' }));
+
+        expect(errorCode(response)).toBe('INTERNAL_ERROR');
+        expect(consoleError).toHaveBeenCalledWith(
+            'Failed to handle palate profile request',
+            {
+                requestId: 'request-123',
+                errorName: 'Error',
+            },
+        );
+        consoleError.mockRestore();
+    });
 });
 
 const apiEvent = ({

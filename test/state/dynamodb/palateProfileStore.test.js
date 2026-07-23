@@ -20,10 +20,11 @@ const profile = {
     wineExamples: [],
 };
 
-const createStore = client => createPalateProfileStore({
+const createStore = (client, overrides = {}) => createPalateProfileStore({
     client,
     userDataTableName: tableName,
     now: () => timestamp,
+    ...overrides,
 });
 
 describe('createPalateProfileStore', () => {
@@ -301,6 +302,167 @@ describe('createPalateProfileStore', () => {
             TransactWriteCommand,
         );
         expect(client.send.mock.calls[1][0]).toBeInstanceOf(GetCommand);
+    });
+
+    it('retries an overlapping initial transaction before reporting the winning version', async () => {
+        const transactionConflict = new Error('transaction conflict');
+        transactionConflict.name = 'TransactionCanceledException';
+        transactionConflict.CancellationReasons = [
+            { Code: 'TransactionConflict' },
+            { Code: 'None' },
+        ];
+        const conditionalConflict = new Error('conditional conflict');
+        conditionalConflict.name = 'TransactionCanceledException';
+        conditionalConflict.CancellationReasons = [
+            { Code: 'ConditionalCheckFailed' },
+            { Code: 'None' },
+        ];
+        const client = {
+            send: vi.fn()
+                .mockRejectedValueOnce(transactionConflict)
+                .mockResolvedValueOnce({})
+                .mockRejectedValueOnce(conditionalConflict)
+                .mockResolvedValueOnce({
+                    Item: {
+                        palateProfileVersion: 1,
+                    },
+                }),
+        };
+        const waitBeforeTransactionRetry = vi.fn().mockResolvedValue();
+
+        await expect(createStore(client, {
+            waitBeforeTransactionRetry,
+        }).putNextPalateProfile({
+            userId: 'user-1',
+            expectedPalateProfileVersion: null,
+            profile,
+        })).rejects.toMatchObject({
+            name: 'PalateProfileVersionConflictError',
+            expectedPalateProfileVersion: null,
+            currentPalateProfileVersion: 1,
+        });
+
+        expect(waitBeforeTransactionRetry).toHaveBeenCalledWith(25);
+        expect(client.send.mock.calls.map(([command]) => command))
+            .toEqual([
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+            ]);
+    });
+
+    it('retries a transient transaction conflict when the pointer is unchanged', async () => {
+        const transactionConflict = new Error('transaction conflict');
+        transactionConflict.name = 'TransactionConflictException';
+        const client = {
+            send: vi.fn()
+                .mockRejectedValueOnce(transactionConflict)
+                .mockResolvedValueOnce({
+                    Item: {
+                        palateProfileVersion: 4,
+                    },
+                })
+                .mockResolvedValueOnce({}),
+        };
+        const waitBeforeTransactionRetry = vi.fn().mockResolvedValue();
+
+        await expect(createStore(client, {
+            waitBeforeTransactionRetry,
+        }).putNextPalateProfile({
+            userId: 'user-1',
+            expectedPalateProfileVersion: 4,
+            profile,
+        })).resolves.toMatchObject({
+            palateProfileVersion: 5,
+        });
+
+        expect(waitBeforeTransactionRetry).toHaveBeenCalledWith(25);
+        expect(client.send.mock.calls.map(([command]) => command))
+            .toEqual([
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+                expect.any(TransactWriteCommand),
+            ]);
+    });
+
+    it('reports an existing-version winner without retrying the transaction', async () => {
+        const transactionConflict = new Error('transaction conflict');
+        transactionConflict.name = 'TransactionCanceledException';
+        transactionConflict.CancellationReasons = [
+            { Code: 'TransactionConflict' },
+            { Code: 'None' },
+        ];
+        const client = {
+            send: vi.fn()
+                .mockRejectedValueOnce(transactionConflict)
+                .mockResolvedValueOnce({
+                    Item: {
+                        palateProfileVersion: 5,
+                    },
+                }),
+        };
+        const waitBeforeTransactionRetry = vi.fn().mockResolvedValue();
+
+        await expect(createStore(client, {
+            waitBeforeTransactionRetry,
+        }).putNextPalateProfile({
+            userId: 'user-1',
+            expectedPalateProfileVersion: 4,
+            profile,
+        })).rejects.toMatchObject({
+            name: 'PalateProfileVersionConflictError',
+            expectedPalateProfileVersion: 4,
+            currentPalateProfileVersion: 5,
+        });
+
+        expect(waitBeforeTransactionRetry).not.toHaveBeenCalled();
+        expect(client.send.mock.calls.map(([command]) => command))
+            .toEqual([
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+            ]);
+    });
+
+    it('stops after three transaction conflicts when the pointer remains unchanged', async () => {
+        const transactionConflict = new Error('transaction conflict');
+        transactionConflict.name = 'TransactionConflictException';
+        const client = {
+            send: vi.fn(command => {
+                if (command instanceof TransactWriteCommand) {
+                    return Promise.reject(transactionConflict);
+                }
+
+                return Promise.resolve({
+                    Item: {
+                        palateProfileVersion: 4,
+                    },
+                });
+            }),
+        };
+        const waitBeforeTransactionRetry = vi.fn().mockResolvedValue();
+
+        await expect(createStore(client, {
+            waitBeforeTransactionRetry,
+        }).putNextPalateProfile({
+            userId: 'user-1',
+            expectedPalateProfileVersion: 4,
+            profile,
+        })).rejects.toBe(transactionConflict);
+
+        expect(waitBeforeTransactionRetry.mock.calls).toEqual([
+            [25],
+            [50],
+        ]);
+        expect(client.send.mock.calls.map(([command]) => command))
+            .toEqual([
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+                expect.any(TransactWriteCommand),
+                expect.any(GetCommand),
+            ]);
     });
 
     it('does not misclassify a non-conditional transaction failure', async () => {

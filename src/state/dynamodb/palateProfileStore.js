@@ -7,11 +7,15 @@ const CURRENT_POINTER_SK = 'CURRENT_PALATE_PROFILE';
 const PROFILE_SK_PREFIX = 'PALATE_PROFILE#';
 const PROFILE_ENTITY_TYPE = 'PalateProfile';
 const POINTER_ENTITY_TYPE = 'CurrentPalateProfilePointer';
+const MAX_TRANSACTION_ATTEMPTS = 3;
+const TRANSACTION_RETRY_DELAY_MS = 25;
 
 export const createPalateProfileStore = ({
     client,
     userDataTableName = process.env.USER_DATA_TABLE_NAME,
     now = () => new Date().toISOString(),
+    waitBeforeTransactionRetry = milliseconds =>
+        new Promise(resolve => setTimeout(resolve, milliseconds)),
 } = {}) => {
     if (!client) throw new Error('DynamoDB client is required');
     if (!userDataTableName) throw new Error('USER_DATA_TABLE_NAME is required');
@@ -87,50 +91,81 @@ export const createPalateProfileStore = ({
                 updatedAt: timestamp,
             };
 
-            try {
-                await client.send(new TransactWriteCommand({
-                    TransactItems: [
-                        {
-                            Put: {
-                                TableName: userDataTableName,
-                                Item: profileItem,
-                                ConditionExpression: [
-                                    'attribute_not_exists(pk)',
-                                    'attribute_not_exists(sk)',
-                                ].join(' AND '),
+            for (
+                let attempt = 1;
+                attempt <= MAX_TRANSACTION_ATTEMPTS;
+                attempt += 1
+            ) {
+                try {
+                    await client.send(new TransactWriteCommand({
+                        TransactItems: [
+                            {
+                                Put: {
+                                    TableName: userDataTableName,
+                                    Item: profileItem,
+                                    ConditionExpression: [
+                                        'attribute_not_exists(pk)',
+                                        'attribute_not_exists(sk)',
+                                    ].join(' AND '),
+                                },
                             },
-                        },
-                        {
-                            Update: createPointerUpdate({
-                                tableName: userDataTableName,
-                                userId,
-                                expectedPalateProfileVersion,
-                                nextVersion,
-                                profileSk,
-                                timestamp,
-                            }),
-                        },
-                    ],
-                }));
-            } catch (error) {
-                if (!isConditionalTransactionConflict(error)) {
-                    throw error;
+                            {
+                                Update: createPointerUpdate({
+                                    tableName: userDataTableName,
+                                    userId,
+                                    expectedPalateProfileVersion,
+                                    nextVersion,
+                                    profileSk,
+                                    timestamp,
+                                }),
+                            },
+                        ],
+                    }));
+
+                    return toPublicPalateProfile(profileItem);
+                } catch (error) {
+                    if (isConditionalTransactionConflict(error)) {
+                        throw await createCurrentVersionConflict({
+                            client,
+                            tableName: userDataTableName,
+                            userId,
+                            expectedPalateProfileVersion,
+                        });
+                    }
+
+                    if (!isRetryableTransactionConflict(error)) {
+                        throw error;
+                    }
+
+                    const currentPointer = await getCurrentPointer({
+                        client,
+                        tableName: userDataTableName,
+                        userId,
+                    });
+                    const currentPalateProfileVersion =
+                        currentPointer?.palateProfileVersion ?? null;
+
+                    if (
+                        currentPalateProfileVersion
+                        !== expectedPalateProfileVersion
+                    ) {
+                        throw createProfileVersionConflictError({
+                            expectedPalateProfileVersion,
+                            currentPalateProfileVersion,
+                        });
+                    }
+
+                    if (attempt === MAX_TRANSACTION_ATTEMPTS) {
+                        throw error;
+                    }
+
+                    await waitBeforeTransactionRetry(
+                        TRANSACTION_RETRY_DELAY_MS * attempt,
+                    );
                 }
-
-                const currentPointer = await getCurrentPointer({
-                    client,
-                    tableName: userDataTableName,
-                    userId,
-                });
-
-                throw createProfileVersionConflictError({
-                    expectedPalateProfileVersion,
-                    currentPalateProfileVersion:
-                        currentPointer?.palateProfileVersion ?? null,
-                });
             }
 
-            return toPublicPalateProfile(profileItem);
+            throw new Error('Palate profile transaction attempts were exhausted');
         },
     };
 };
@@ -250,6 +285,44 @@ const isConditionalTransactionConflict = error => {
     return cancellationReasons.some(
         reason => reason?.Code === 'ConditionalCheckFailed',
     );
+};
+
+const isRetryableTransactionConflict = error => {
+    if (error?.name === 'TransactionConflictException') {
+        return true;
+    }
+
+    if (error?.name !== 'TransactionCanceledException') {
+        return false;
+    }
+
+    const cancellationReasons =
+        error.CancellationReasons
+        ?? error.cancellationReasons
+        ?? [];
+
+    return cancellationReasons.some(
+        reason => reason?.Code === 'TransactionConflict',
+    );
+};
+
+const createCurrentVersionConflict = async ({
+    client,
+    tableName,
+    userId,
+    expectedPalateProfileVersion,
+}) => {
+    const currentPointer = await getCurrentPointer({
+        client,
+        tableName,
+        userId,
+    });
+
+    return createProfileVersionConflictError({
+        expectedPalateProfileVersion,
+        currentPalateProfileVersion:
+            currentPointer?.palateProfileVersion ?? null,
+    });
 };
 
 const createProfileVersionConflictError = ({
