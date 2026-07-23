@@ -447,6 +447,52 @@ describe('catalogue API', () => {
         expect(parseBody(invalidResponse).error.code).toBe('INVALID_CURSOR');
     });
 
+    it('continues from the encoded cursor position when the anchor wine is removed', async () => {
+        const wines = [
+            createWine({ id: 'wine-a', name: 'Alpha Name' }),
+            createWine({ id: 'wine-b', name: 'Bravo Name' }),
+            createWine({ id: 'wine-c', name: 'Charlie Name' }),
+        ];
+        const store = createFakeStore({ wines });
+        const handler = createCatalogueHandler({ catalogueStore: store });
+
+        const firstResponse = await handler(listEvent({
+            sort: 'name',
+            direction: 'asc',
+            limit: '2',
+        }));
+        const firstBody = parseBody(firstResponse);
+
+        expect(firstBody.data.items.map(item => item.retailerWineId)).toEqual([
+            'wine-a',
+            'wine-b',
+        ]);
+
+        store.listCurrentWines.mockResolvedValue([
+            wines[0],
+            wines[2],
+        ]);
+
+        const secondResponse = await handler(listEvent({
+            sort: 'name',
+            direction: 'asc',
+            limit: '2',
+            cursor: firstBody.meta.nextCursor,
+        }));
+
+        expect(secondResponse.statusCode).toBe(200);
+        expect(parseBody(secondResponse)).toMatchObject({
+            data: {
+                items: [{
+                    retailerWineId: 'wine-c',
+                }],
+            },
+            meta: {
+                nextCursor: null,
+            },
+        });
+    });
+
     it('defaults recently added sorting to descending firstSeenAt', async () => {
         const wines = [
             createWine({

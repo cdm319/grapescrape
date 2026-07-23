@@ -273,16 +273,32 @@ const createCatalogueComparator = query => (left, right) => {
     const leftValue = getSortValue(left, query.sort);
     const rightValue = getSortValue(right, query.sort);
 
+    return compareCataloguePositions({
+        leftValue,
+        leftSourceKey: left.sourceKey,
+        rightValue,
+        rightSourceKey: right.sourceKey,
+        direction: query.direction,
+    });
+};
+
+const compareCataloguePositions = ({
+    leftValue,
+    leftSourceKey,
+    rightValue,
+    rightSourceKey,
+    direction,
+}) => {
     if (leftValue === null && rightValue !== null) return 1;
     if (leftValue !== null && rightValue === null) return -1;
 
     const valueComparison = compareSortValues(leftValue, rightValue);
 
     if (valueComparison !== 0) {
-        return query.direction === 'desc' ? -valueComparison : valueComparison;
+        return direction === 'desc' ? -valueComparison : valueComparison;
     }
 
-    return compareStrings(left.sourceKey, right.sourceKey);
+    return compareStrings(leftSourceKey, rightSourceKey);
 };
 
 const compareSortValues = (left, right) => {
@@ -316,16 +332,15 @@ const paginateCatalogueWines = (items, query) => {
     let startIndex = 0;
 
     if (query.cursor) {
-        const cursorIndex = items.findIndex(item =>
-            item.sourceKey === query.cursor.lastSourceKey
-            && getSortValue(item, query.sort) === query.cursor.lastSortValue
-        );
+        const nextItemIndex = items.findIndex(item => compareCataloguePositions({
+            leftValue: getSortValue(item, query.sort),
+            leftSourceKey: item.sourceKey,
+            rightValue: query.cursor.lastSortValue,
+            rightSourceKey: query.cursor.lastSourceKey,
+            direction: query.direction,
+        }) > 0);
 
-        if (cursorIndex === -1) {
-            throw invalidCursor();
-        }
-
-        startIndex = cursorIndex + 1;
+        startIndex = nextItemIndex === -1 ? items.length : nextItemIndex;
     }
 
     const pageItems = items.slice(startIndex, startIndex + query.limit);
