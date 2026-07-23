@@ -7,6 +7,7 @@ import {
     parseAssessmentMessage,
     validateAssessmentMessage,
 } from './validateAssessmentMessage.js';
+import { projectPalateProfileForAssessment } from './projectPalateProfileForAssessment.js';
 
 export const processAssessmentRequest = async ({
     record,
@@ -61,7 +62,7 @@ export const processAssessmentRequest = async ({
 
     const assessment = await assessmentProvider.assessWine({
         wine: message.wineSnapshot,
-        palateProfile: currentPalateProfile,
+        palateProfile: projectPalateProfileForAssessment(currentPalateProfile),
     });
 
     const completedAssessment = buildCompletedAssessmentItem({

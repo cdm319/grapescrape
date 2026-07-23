@@ -148,6 +148,79 @@ describe('processAssessmentRequest', () => {
         }));
     });
 
+    it('passes sanitized wine examples and the complete wine snapshot to the assessment provider', async () => {
+        const stylePreferences = {
+            body: { preferred: ['full'], avoided: ['light'] },
+            fruitRipeness: { preferred: ['ripe'], avoided: ['underripe'] },
+            fruitCharacter: { preferred: ['black_fruit'], avoided: [] },
+            texture: { preferred: ['plush'], avoided: ['thin'] },
+            oakInfluence: { preferred: ['moderate'], avoided: ['none_detected'] },
+            tannin: { preferred: ['moderate_plus'], avoided: ['firm_or_drying'] },
+            acidity: { preferred: ['balanced'], avoided: ['sharp'] },
+            development: { preferred: ['ready_to_drink'], avoided: [] },
+            styleTags: { preferred: ['polished'], avoided: ['rustic'] },
+        };
+        const currentPalateProfile = {
+            pk: 'USER#user-1',
+            sk: 'PALATE_PROFILE#7',
+            entityType: 'PalateProfile',
+            userId: 'user-1',
+            palateProfileVersion: 7,
+            palateProfile: {
+                stylePreferences,
+                wineExamples: [{
+                    id: 'c5f751e0-cd3c-4b5b-9cf7-fd86d9acc234',
+                    name: 'Example Estate',
+                    vintage: '2019',
+                    sentiment: 'enjoyed',
+                    notes: 'Ripe fruit and a plush texture.',
+                    retailerId: 'retailer-1',
+                    sourceKey: 'retailer:tws:example-estate-2019',
+                }],
+            },
+            createdAt: '2026-07-23T10:30:00.000Z',
+            updatedAt: '2026-07-23T10:30:00.000Z',
+            currentPointer: {
+                pk: 'USER#user-1',
+                sk: 'CURRENT_PALATE_PROFILE',
+                palateProfileVersion: 7,
+            },
+        };
+        const completeWineSnapshot = {
+            ...wineSnapshot,
+            vintage: '2020',
+            region: 'Bordeaux',
+            description: 'Ripe black fruit with a plush texture.',
+        };
+        const context = createContext({ currentPalateProfile });
+
+        await processAssessmentRequest({
+            record: createRecord({
+                ...message,
+                wineSnapshot: completeWineSnapshot,
+            }),
+            ...context,
+            userId: 'user-1',
+            model: 'gpt-test',
+        });
+
+        expect(context.assessmentProvider.assessWine).toHaveBeenCalledWith({
+            wine: completeWineSnapshot,
+            palateProfile: {
+                ...currentPalateProfile,
+                palateProfile: {
+                    stylePreferences,
+                    wineExamples: [{
+                        name: 'Example Estate',
+                        vintage: '2019',
+                        sentiment: 'enjoyed',
+                        notes: 'Ripe fruit and a plush texture.',
+                    }],
+                },
+            },
+        });
+    });
+
     it('skips an existing completed assessment without calling OpenAI', async () => {
         const assessmentInputKey = expectedAssessmentInputKey();
         const context = createContext({
