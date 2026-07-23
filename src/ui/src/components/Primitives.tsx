@@ -4,6 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type TextareaHTMLAttributes,
 } from "react";
 import { ApiError } from "../api/apiClient";
 
@@ -13,7 +14,7 @@ export function Button({
   type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "quiet";
+  variant?: "primary" | "secondary" | "quiet" | "danger";
 }) {
   return (
     <button
@@ -21,6 +22,38 @@ export function Button({
       type={type}
       className={`button button--${variant} ${className}`.trim()}
     />
+  );
+}
+
+export function TextAreaField({
+  label,
+  hint,
+  error,
+  id,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  id: string;
+  label: string;
+  hint?: string;
+  error?: string;
+}) {
+  const helpId = hint || error ? `${id}-help` : undefined;
+
+  return (
+    <div className="form-field">
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        {...props}
+        id={id}
+        aria-describedby={helpId}
+        aria-invalid={error ? "true" : undefined}
+      />
+      {(hint || error) && (
+        <p id={helpId} className={error ? "field-error" : "field-hint"}>
+          {error ?? hint}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -175,9 +208,9 @@ export function Modal({
     const dialog = dialogRef.current;
 
     if (open && !dialog?.open) {
-      dialog?.showModal();
+      dialog?.showModal?.();
     } else if (!open && dialog?.open) {
-      dialog.close();
+      dialog.close?.();
     }
   }, [open]);
 
