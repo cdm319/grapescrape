@@ -32,7 +32,12 @@ export function ProtectedRoute() {
   const returnTo = `${location.pathname}${location.search}${location.hash}`;
 
   useEffect(() => {
-    if (auth.status === "unauthenticated" && !redirectStarted.current) {
+    if (auth.status !== "unauthenticated") {
+      redirectStarted.current = false;
+      return;
+    }
+
+    if (!redirectStarted.current) {
       redirectStarted.current = true;
       void auth.signIn(returnTo);
     }

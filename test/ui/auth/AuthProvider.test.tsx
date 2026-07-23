@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../../src/ui/src/App";
@@ -97,6 +97,23 @@ describe("authenticated application routing", () => {
     expect(
       screen.getByRole("button", { name: "Sign in again" }),
     ).toBeInTheDocument();
+  });
+
+  it("retries managed login after the first redirect attempt fails", async () => {
+    const { client } = createFakeAuthClient();
+    vi.mocked(client.beginSignIn).mockRejectedValueOnce(
+      new Error("Redirect unavailable"),
+    );
+
+    renderRoutes(client, "/wines");
+
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    fireEvent.click(retry);
+
+    await waitFor(() => {
+      expect(client.beginSignIn).toHaveBeenCalledTimes(2);
+    });
+    expect(client.beginSignIn).toHaveBeenLastCalledWith("/wines");
   });
 
   it("completes the callback and returns to the intended protected route", async () => {
