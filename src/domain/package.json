@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./assessment/*": "./assessment/*.js",
+    "./palate-profile/*": "./palate-profile/*.js",
     "./wine/*": "./wine/*.js"
   }
 }

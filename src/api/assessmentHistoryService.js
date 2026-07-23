@@ -1,4 +1,7 @@
 import {
+    deriveAssessmentFreshness,
+} from '@grapescrape/domain/assessment/deriveAssessmentFreshness';
+import {
     AssessmentHistoryApiError,
     notFound,
 } from './assessmentHistoryApiError.js';
@@ -88,7 +91,7 @@ export const createAssessmentHistoryService = ({
                     : null,
             },
             latestAssessment: toPublicAssessment(latestAssessment),
-            freshness: deriveFreshness({
+            freshness: deriveAssessmentFreshness({
                 assessment: latestAssessment,
                 currentPalateProfileVersion,
                 currentSourceHash,
@@ -233,35 +236,6 @@ const toPublicAssessment = item => {
         palateAlignment: assessment.palateAlignment,
         styleProfile: assessment.styleProfile,
         completedAt: item.completedAt ?? item.createdAt,
-    };
-};
-
-const deriveFreshness = ({
-    assessment,
-    currentPalateProfileVersion,
-    currentSourceHash,
-}) => {
-    const assessedPalateProfileVersion = assessment.palateProfileVersion;
-    const profileChanged =
-        assessedPalateProfileVersion !== currentPalateProfileVersion;
-    const sourceChanged = assessment.sourceHash !== currentSourceHash;
-    let status = 'current';
-
-    if (profileChanged && sourceChanged) {
-        status = 'palate_profile_and_source_changed';
-    } else if (profileChanged) {
-        status = 'palate_profile_changed';
-    } else if (sourceChanged) {
-        status = 'source_changed';
-    }
-
-    return {
-        status,
-        isCurrent: !profileChanged && !sourceChanged,
-        profileChanged,
-        sourceChanged,
-        assessedPalateProfileVersion,
-        currentPalateProfileVersion,
     };
 };
 
