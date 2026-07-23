@@ -1,4 +1,8 @@
-import { Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigatewayv2Authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -15,9 +19,35 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export class GrapeScrapeFutureStack extends Stack {
+const API_DOMAIN_NAME = 'api.grapescrape.com';
+const AUTH_DOMAIN_NAME = 'auth.grapescrape.com';
+const FRONTEND_ORIGIN = 'https://app.grapescrape.com';
+const FRONTEND_CALLBACK_URL = `${FRONTEND_ORIGIN}/auth/callback`;
+
+export class GrapeScrapeAuthCertificateStack extends Stack {
     constructor(scope, id, props) {
         super(scope, id, props);
+
+        Tags.of(this).add('Application', 'grapescrape');
+        Tags.of(this).add('Project', 'grapescrape');
+
+        this.authCertificate = new certificatemanager.Certificate(this, 'AuthCertificate', {
+            domainName: AUTH_DOMAIN_NAME,
+            certificateName: 'grapescrape-auth-domain',
+            validation: certificatemanager.CertificateValidation.fromDns(),
+        });
+
+        new CfnOutput(this, 'AuthCertificateArn', {
+            description: 'ACM certificate for the Cognito custom domain in us-east-1.',
+            value: this.authCertificate.certificateArn,
+        });
+    }
+}
+
+export class GrapeScrapeFutureStack extends Stack {
+    constructor(scope, id, props) {
+        const { authCertificate, ...stackProps } = props;
+        super(scope, id, stackProps);
 
         Tags.of(this).add('Application', 'grapescrape');
         Tags.of(this).add('Project', 'grapescrape');
@@ -38,6 +68,7 @@ export class GrapeScrapeFutureStack extends Stack {
             selfSignUpEnabled: false,
             mfa: cognito.Mfa.OFF,
             accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+            featurePlan: cognito.FeaturePlan.ESSENTIALS,
             removalPolicy: RemovalPolicy.RETAIN,
         });
 
@@ -48,8 +79,105 @@ export class GrapeScrapeFutureStack extends Stack {
             authFlows: {
                 userSrp: true,
             },
-            disableOAuth: true,
+            oAuth: {
+                flows: {
+                    authorizationCodeGrant: true,
+                },
+                callbackUrls: [FRONTEND_CALLBACK_URL],
+                logoutUrls: [FRONTEND_ORIGIN],
+                scopes: [
+                    cognito.OAuthScope.OPENID,
+                    cognito.OAuthScope.EMAIL,
+                    cognito.OAuthScope.PROFILE,
+                ],
+            },
             preventUserExistenceErrors: true,
+            supportedIdentityProviders: [
+                cognito.UserPoolClientIdentityProvider.COGNITO,
+            ],
+        });
+
+        const userPoolDomain = userPool.addDomain('GrapeScrapeManagedLoginDomain', {
+            customDomain: {
+                domainName: AUTH_DOMAIN_NAME,
+                certificate: authCertificate,
+            },
+            managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
+        });
+
+        const managedLoginBranding = new cognito.CfnManagedLoginBranding(
+            this,
+            'GrapeScrapeManagedLoginBranding',
+            {
+                clientId: userPoolClient.userPoolClientId,
+                useCognitoProvidedValues: true,
+                userPoolId: userPool.userPoolId,
+            },
+        );
+        managedLoginBranding.node.addDependency(userPoolDomain);
+
+        const apiCertificate = new certificatemanager.Certificate(this, 'ApiCertificate', {
+            domainName: API_DOMAIN_NAME,
+            certificateName: 'grapescrape-api-domain',
+            validation: certificatemanager.CertificateValidation.fromDns(),
+        });
+
+        const apiDomain = new apigatewayv2.DomainName(this, 'ApiDomain', {
+            domainName: API_DOMAIN_NAME,
+            certificate: apiCertificate,
+            endpointType: apigatewayv2.EndpointType.REGIONAL,
+            securityPolicy: apigatewayv2.SecurityPolicy.TLS_1_2,
+        });
+
+        const jwtAuthorizer = new apigatewayv2Authorizers.HttpJwtAuthorizer(
+            'GrapeScrapeJwtAuthorizer',
+            userPool.userPoolProviderUrl,
+            {
+                authorizerName: 'grapescrape-cognito-jwt-authorizer',
+                jwtAudience: [userPoolClient.userPoolClientId],
+            },
+        );
+
+        const httpApi = new apigatewayv2.HttpApi(this, 'GrapeScrapeHttpApi', {
+            apiName: 'grapescrape-api',
+            description: 'Authenticated GrapeScrape domain API.',
+            corsPreflight: {
+                allowHeaders: ['Authorization', 'Content-Type'],
+                allowMethods: [
+                    apigatewayv2.CorsHttpMethod.DELETE,
+                    apigatewayv2.CorsHttpMethod.GET,
+                    apigatewayv2.CorsHttpMethod.PATCH,
+                    apigatewayv2.CorsHttpMethod.POST,
+                    apigatewayv2.CorsHttpMethod.PUT,
+                ],
+                allowOrigins: [FRONTEND_ORIGIN],
+                exposeHeaders: ['Retry-After'],
+                maxAge: Duration.days(1),
+            },
+            defaultAuthorizer: jwtAuthorizer,
+            defaultDomainMapping: {
+                domainName: apiDomain,
+            },
+            disableExecuteApiEndpoint: true,
+        });
+
+        const authenticatedSubjectFunction = new NodejsFunction(this, 'AuthenticatedSubjectFunction', {
+            functionName: 'grapescrape-authenticated-subject',
+            runtime: lambda.Runtime.NODEJS_24_X,
+            architecture: lambda.Architecture.ARM_64,
+            entry: path.join(__dirname, '../../src/api/authenticatedSubject.js'),
+            handler: 'handler',
+            memorySize: 128,
+            timeout: Duration.seconds(5),
+        });
+
+        httpApi.addRoutes({
+            path: '/v1/auth/session',
+            methods: [apigatewayv2.HttpMethod.GET],
+            integration: new apigatewayv2Integrations.HttpLambdaIntegration(
+                'AuthenticatedSubjectIntegration',
+                authenticatedSubjectFunction,
+            ),
         });
 
         const userDataTable = new dynamodb.Table(this, 'UserDataTable', {
@@ -178,6 +306,46 @@ export class GrapeScrapeFutureStack extends Stack {
                     maximumEventAgeInSeconds: 3600,
                 },
             },
+        });
+
+        new CfnOutput(this, 'ApiBaseUrl', {
+            description: 'Public base URL for the GrapeScrape API.',
+            value: `https://${API_DOMAIN_NAME}`,
+        });
+
+        new CfnOutput(this, 'ApiCertificateArn', {
+            description: 'ACM certificate for the API custom domain in eu-west-2.',
+            value: apiCertificate.certificateArn,
+        });
+
+        new CfnOutput(this, 'ApiDnsTarget', {
+            description: 'DNS target for api.grapescrape.com.',
+            value: apiDomain.regionalDomainName,
+        });
+
+        new CfnOutput(this, 'ApiDnsTargetHostedZoneId', {
+            description: 'Route 53 hosted zone ID for the regional API Gateway domain.',
+            value: apiDomain.regionalHostedZoneId,
+        });
+
+        new CfnOutput(this, 'AuthDnsTarget', {
+            description: 'DNS target for auth.grapescrape.com.',
+            value: userPoolDomain.cloudFrontEndpoint,
+        });
+
+        new CfnOutput(this, 'AuthDomain', {
+            description: 'Public Cognito managed-login domain for frontend configuration.',
+            value: `https://${AUTH_DOMAIN_NAME}`,
+        });
+
+        new CfnOutput(this, 'UserPoolClientId', {
+            description: 'Public Cognito app-client ID for frontend configuration.',
+            value: userPoolClient.userPoolClientId,
+        });
+
+        new CfnOutput(this, 'UserPoolId', {
+            description: 'Public Cognito user-pool ID for frontend configuration.',
+            value: userPool.userPoolId,
         });
     }
 }
