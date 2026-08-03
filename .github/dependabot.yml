@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    # Keep repository-managed security updates, without enabling version-update PRs.
+    open-pull-requests-limit: 0
+    ignore:
+      # aws-cdk-lib bundles brace-expansion, so npm and Dependabot cannot update it
+      # independently. Remove this once aws-cdk-lib bundles brace-expansion >= 5.0.9.
+      - dependency-name: brace-expansion
