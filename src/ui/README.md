@@ -39,6 +39,11 @@ Callback and logout URLs are validated against the current browser origin.
 HTTP is accepted only for loopback local development; hosted configuration
 must use HTTPS.
 
+For a production build, copy `production.env.example` to the ignored
+`.env.production.local` file and replace the public Cognito identifiers with
+the current stack outputs. The safe, dry-run-first hosting workflow is in
+`runbooks/frontend-production-rollout.md`.
+
 ## Validation
 
 ```bash

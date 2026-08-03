@@ -13,16 +13,27 @@ import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FrontendHosting } from './frontend-hosting.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const API_DOMAIN_NAME = 'api.grapescrape.com';
+const APP_DOMAIN_NAME = 'app.grapescrape.com';
 const AUTH_DOMAIN_NAME = 'auth.grapescrape.com';
-const FRONTEND_ORIGIN = 'https://app.grapescrape.com';
+const ROOT_DOMAIN_NAME = 'grapescrape.com';
+const FRONTEND_ORIGIN = `https://${APP_DOMAIN_NAME}`;
 const FRONTEND_CALLBACK_URL = `${FRONTEND_ORIGIN}/auth/callback`;
+const FRONTEND_LOGOUT_URL = `${FRONTEND_ORIGIN}/`;
+
+function frontendBrandingAsset(filename) {
+    return readFileSync(
+        path.join(__dirname, '../../src/ui/public', filename),
+    ).toString('base64');
+}
 
 export class GrapeScrapeAuthCertificateStack extends Stack {
     constructor(scope, id, props) {
@@ -37,16 +48,32 @@ export class GrapeScrapeAuthCertificateStack extends Stack {
             validation: certificatemanager.CertificateValidation.fromDns(),
         });
 
+        this.frontendCertificate = new certificatemanager.Certificate(
+            this,
+            'FrontendCertificate',
+            {
+                domainName: ROOT_DOMAIN_NAME,
+                certificateName: 'grapescrape-frontend-domains',
+                subjectAlternativeNames: [APP_DOMAIN_NAME],
+                validation: certificatemanager.CertificateValidation.fromDns(),
+            },
+        );
+
         new CfnOutput(this, 'AuthCertificateArn', {
             description: 'ACM certificate for the Cognito custom domain in us-east-1.',
             value: this.authCertificate.certificateArn,
+        });
+
+        new CfnOutput(this, 'FrontendCertificateArn', {
+            description: 'ACM certificate for app.grapescrape.com and grapescrape.com in us-east-1.',
+            value: this.frontendCertificate.certificateArn,
         });
     }
 }
 
 export class GrapeScrapeFutureStack extends Stack {
     constructor(scope, id, props) {
-        const { authCertificate, ...stackProps } = props;
+        const { authCertificate, frontendCertificate, ...stackProps } = props;
         super(scope, id, stackProps);
 
         Tags.of(this).add('Application', 'grapescrape');
@@ -84,7 +111,7 @@ export class GrapeScrapeFutureStack extends Stack {
                     authorizationCodeGrant: true,
                 },
                 callbackUrls: [FRONTEND_CALLBACK_URL],
-                logoutUrls: [FRONTEND_ORIGIN],
+                logoutUrls: [FRONTEND_LOGOUT_URL],
                 scopes: [
                     cognito.OAuthScope.OPENID,
                     cognito.OAuthScope.EMAIL,
@@ -109,12 +136,31 @@ export class GrapeScrapeFutureStack extends Stack {
             this,
             'GrapeScrapeManagedLoginBranding',
             {
+                assets: [
+                    {
+                        bytes: frontendBrandingAsset('grapescrape-logo.svg'),
+                        category: 'FORM_LOGO',
+                        colorMode: 'DYNAMIC',
+                        extension: 'SVG',
+                    },
+                    {
+                        bytes: frontendBrandingAsset('grapescrape-mark.svg'),
+                        category: 'FAVICON_SVG',
+                        colorMode: 'DYNAMIC',
+                        extension: 'SVG',
+                    },
+                ],
                 clientId: userPoolClient.userPoolClientId,
-                useCognitoProvidedValues: true,
                 userPoolId: userPool.userPoolId,
             },
         );
         managedLoginBranding.node.addDependency(userPoolDomain);
+
+        new FrontendHosting(this, 'FrontendHosting', {
+            appDomainName: APP_DOMAIN_NAME,
+            certificate: frontendCertificate,
+            rootDomainName: ROOT_DOMAIN_NAME,
+        });
 
         const apiCertificate = new certificatemanager.Certificate(this, 'ApiCertificate', {
             domainName: API_DOMAIN_NAME,

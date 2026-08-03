@@ -24,6 +24,7 @@ const authCertificateStack = new GrapeScrapeAuthCertificateStack(
 
 new GrapeScrapeFutureStack(app, 'GrapeScrapeFutureStack', {
     authCertificate: authCertificateStack.authCertificate,
+    frontendCertificate: authCertificateStack.frontendCertificate,
     crossRegionReferences: true,
     env: {
         account,
