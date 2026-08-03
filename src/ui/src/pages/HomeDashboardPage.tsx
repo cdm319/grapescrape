@@ -14,14 +14,12 @@ import {
   type Fit,
   type PalateProfile,
 } from "../api/homeDashboardApi";
-import { useApiClient } from "../api/useApiClient";
 import {
   ApiErrorState,
   EmptyState,
   Skeleton,
   StatusBadge,
 } from "../components/Primitives";
-import type { PublicConfig } from "../config";
 
 const fitLabels: Record<Fit, string> = {
   strong: "Strong fit",
@@ -505,6 +503,6 @@ export function HomeDashboardPage({
   );
 }
 
-export function HomeDashboardRoute({ config }: { config: PublicConfig }) {
-  return <HomeDashboardPage apiClient={useApiClient(config)} />;
+export function HomeDashboardRoute({ apiClient }: { apiClient: ApiClient }) {
+  return <HomeDashboardPage apiClient={apiClient} />;
 }
