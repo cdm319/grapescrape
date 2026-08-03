@@ -5,11 +5,14 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+import {
+  ApiClientProvider,
+  useAuthenticatedApiClient,
+} from "./api/ApiClientProvider";
 import { AuthProvider } from "./auth/AuthProvider";
 import { createAuthClient, type AuthClient } from "./auth/authClient";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import type { ApiClient } from "./api/apiClient";
-import { useApiClient } from "./api/useApiClient";
 import { AppShell } from "./components/AppShell";
 import type { PublicConfig } from "./config";
 import { AssessedWineDetail } from "./pages/AssessedWineDetail";
@@ -19,9 +22,9 @@ import {
   AssessWinePage,
   HomePage,
   NotFoundPage,
-  PalatePage,
   WinesPage,
 } from "./pages/PlaceholderPages";
+import { PalateProfilePage } from "./pages/PalateProfilePage";
 
 export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
   return (
@@ -31,7 +34,7 @@ export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="wines" element={<WinesPage />} />
-          <Route path="palate" element={<PalatePage />} />
+          <Route path="palate" element={<PalateProfilePage />} />
           <Route
             path="history"
             element={<AssessedWineHistoryPage apiClient={apiClient} />}
@@ -49,12 +52,8 @@ export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
   );
 }
 
-function AuthenticatedApplication({
-  config,
-}: {
-  config: PublicConfig;
-}) {
-  const apiClient = useApiClient(config);
+function AuthenticatedApplication() {
+  const apiClient = useAuthenticatedApiClient();
 
   return (
     <BrowserRouter>
@@ -90,7 +89,9 @@ export function App({
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider client={client}>
-        <AuthenticatedApplication config={config} />
+        <ApiClientProvider config={config}>
+          <AuthenticatedApplication />
+        </ApiClientProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
