@@ -96,30 +96,6 @@ export function WinesPage() {
   );
 }
 
-export function PalatePage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="Your preferences"
-      title="Palate profile"
-      description="Describe the styles you seek out and the bottles that have shaped your taste."
-      emptyTitle="Your palate editor is on its way"
-      emptyMessage="Profile editing will be connected after the versioned palate API is available."
-    />
-  );
-}
-
-export function HistoryPage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="Previously assessed"
-      title="Assessment history"
-      description="Revisit assessments while keeping fit and freshness easy to distinguish."
-      emptyTitle="Your history is on its way"
-      emptyMessage="Assessed-wine history will be connected in its dedicated feature ticket."
-    />
-  );
-}
-
 export function NotFoundPage() {
   return (
     <div className="page-stack">

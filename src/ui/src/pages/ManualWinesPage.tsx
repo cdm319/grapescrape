@@ -18,7 +18,6 @@ import {
   type AssessmentPollingStatus,
   type ManualWine,
 } from "../api/manualWineApi";
-import { useApiClient } from "../api/useApiClient";
 import {
   ApiErrorState,
   Button,
@@ -32,7 +31,6 @@ import {
   TextAreaField,
   WineCard,
 } from "../components/Primitives";
-import type { PublicConfig } from "../config";
 import { PageHeading } from "./PlaceholderPages";
 
 interface ManualWineDraft {
@@ -55,9 +53,7 @@ const emptyDraft: ManualWineDraft = {
   description: "",
 };
 
-export function ManualWinesRoute({ config }: { config: PublicConfig }) {
-  const apiClient = useApiClient(config);
-
+export function ManualWinesRoute({ apiClient }: { apiClient: ApiClient }) {
   return <ManualWinesPage apiClient={apiClient} />;
 }
 
