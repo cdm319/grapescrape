@@ -435,6 +435,63 @@ export class GrapeScrapeFutureStack extends Stack {
             },
         });
 
+        const assessmentRequestsFunction = new NodejsFunction(
+            this,
+            'AssessmentRequestsFunction',
+            {
+                functionName: 'grapescrape-assessment-requests-api',
+                runtime: lambda.Runtime.NODEJS_24_X,
+                architecture: lambda.Architecture.ARM_64,
+                entry: path.join(__dirname, '../../src/api/assessmentRequests.js'),
+                handler: 'handler',
+                memorySize: 128,
+                timeout: Duration.seconds(10),
+                environment: {
+                    USER_DATA_TABLE_NAME: userDataTable.tableName,
+                    WINE_STOCK_TABLE_NAME: wineStockTable.tableName,
+                    ASSESSMENTS_TABLE_NAME: assessmentsTable.tableName,
+                    ASSESSMENT_QUEUE_URL: assessmentQueue.queueUrl,
+                },
+            },
+        );
+
+        assessmentRequestsFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:GetItem'],
+            resources: [
+                userDataTable.tableArn,
+                wineStockTable.tableArn,
+            ],
+        }));
+        assessmentRequestsFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:Query'],
+            resources: [`${ assessmentsTable.tableArn }/index/GSI2`],
+        }));
+        assessmentRequestsFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                'dynamodb:PutItem',
+                'dynamodb:UpdateItem',
+            ],
+            resources: [userDataTable.tableArn],
+            conditions: {
+                StringEquals: {
+                    'dynamodb:EnclosingOperation': 'TransactWriteItems',
+                },
+            },
+        }));
+        assessmentRequestsFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['sqs:SendMessage'],
+            resources: [assessmentQueue.queueArn],
+        }));
+
+        httpApi.addRoutes({
+            path: '/v1/assessment-requests',
+            methods: [apigatewayv2.HttpMethod.POST],
+            integration: new apigatewayv2Integrations.HttpLambdaIntegration(
+                'AssessmentRequestsIntegration',
+                assessmentRequestsFunction,
+            ),
+        });
+
         const retailerScraperFunction = new NodejsFunction(this, 'RetailerScraperFunction', {
             functionName: 'grapescrape-retailer-scraper',
             runtime: lambda.Runtime.NODEJS_24_X,
