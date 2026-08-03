@@ -3,6 +3,7 @@ import { Template } from 'aws-cdk-lib/assertions';
 import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
 import { describe, expect, it } from 'vitest';
 import { FrontendHosting } from '../../infra/lib/frontend-hosting.js';
+import { GrapeScrapeFutureStack } from '../../infra/lib/grapescrape-stack.js';
 
 function frontendTemplate() {
     const app = new App();
@@ -27,7 +28,47 @@ function frontendTemplate() {
     return Template.fromStack(stack);
 }
 
+function futureStackTemplate() {
+    const app = new App();
+    const certificateStack = new Stack(app, 'CertificateImports', {
+        env: {
+            account: '123456789012',
+            region: 'us-east-1',
+        },
+    });
+    const authCertificate = certificatemanager.Certificate.fromCertificateArn(
+        certificateStack,
+        'AuthCertificate',
+        'arn:aws:acm:us-east-1:123456789012:certificate/auth',
+    );
+    const frontendCertificate = certificatemanager.Certificate.fromCertificateArn(
+        certificateStack,
+        'FrontendCertificate',
+        'arn:aws:acm:us-east-1:123456789012:certificate/frontend',
+    );
+    const stack = new GrapeScrapeFutureStack(app, 'GrapeScrapeFutureStackTest', {
+        authCertificate,
+        crossRegionReferences: true,
+        env: {
+            account: '123456789012',
+            region: 'eu-west-2',
+        },
+        frontendCertificate,
+    });
+
+    return Template.fromStack(stack);
+}
+
 describe('frontend hosting infrastructure', () => {
+    it('registers the exact production Cognito callback and logout URLs', () => {
+        const template = futureStackTemplate();
+
+        template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+            CallbackURLs: ['https://app.grapescrape.com/auth/callback'],
+            LogoutURLs: ['https://app.grapescrape.com/'],
+        });
+    });
+
     it('keeps the versioned asset bucket private and retained', () => {
         const template = frontendTemplate();
 

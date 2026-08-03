@@ -56,23 +56,11 @@ export function buildFrontendDeploymentCommands({
     const dryRunArguments = execute ? [] : ['--dryrun'];
     const bucketUri = `s3://${bucketName}`;
 
-    return [
-        {
-            command: 'aws',
-            arguments: [
-                's3', 'sync', 'src/ui/dist', bucketUri,
-                '--delete',
-                '--exclude', 'assets/*',
-                ...AWS_EXCLUDES,
-                '--cache-control', 'no-cache, no-store, must-revalidate',
-                ...dryRunArguments,
-            ],
-        },
+    const commands = [
         {
             command: 'aws',
             arguments: [
                 's3', 'sync', 'src/ui/dist/assets', `${bucketUri}/assets`,
-                '--delete',
                 ...AWS_EXCLUDES,
                 '--cache-control', 'public, max-age=31536000, immutable',
                 ...dryRunArguments,
@@ -81,13 +69,37 @@ export function buildFrontendDeploymentCommands({
         {
             command: 'aws',
             arguments: [
+                's3', 'sync', 'src/ui/dist', bucketUri,
+                '--exclude', 'assets/*',
+                '--exclude', 'index.html',
+                ...AWS_EXCLUDES,
+                '--cache-control', 'no-cache, no-store, must-revalidate',
+                ...dryRunArguments,
+            ],
+        },
+        {
+            command: 'aws',
+            arguments: [
+                's3', 'cp', 'src/ui/dist/index.html', `${bucketUri}/index.html`,
+                '--cache-control', 'no-cache, no-store, must-revalidate',
+                '--content-type', 'text/html',
+                ...dryRunArguments,
+            ],
+        },
+    ];
+
+    if (execute) {
+        commands.push({
+            command: 'aws',
+            arguments: [
                 'cloudfront', 'create-invalidation',
                 '--distribution-id', distributionId,
                 '--paths', '/index.html',
             ],
-            executeOnly: true,
-        },
-    ];
+        });
+    }
+
+    return commands;
 }
 
 export function parsePublicFrontendEnvironmentFile(contents) {
@@ -187,13 +199,8 @@ function listFiles(directory, relativeDirectory = '') {
     return files;
 }
 
-function run(command, arguments_, { printOnly = false } = {}) {
+function run(command, arguments_) {
     const display = [command, ...arguments_].join(' ');
-    if (printOnly) {
-        console.log(`[dry-run] ${display}`);
-        return;
-    }
-
     const result = spawnSync(command, arguments_, {
         stdio: 'inherit',
     });
@@ -248,9 +255,7 @@ function main() {
         distributionId,
         execute,
     })) {
-        run(deploymentCommand.command, deploymentCommand.arguments, {
-            printOnly: !execute && deploymentCommand.executeOnly,
-        });
+        run(deploymentCommand.command, deploymentCommand.arguments);
     }
 
     console.log(

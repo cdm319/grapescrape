@@ -61,23 +61,52 @@ describe('frontend asset deployment safety', () => {
         ])).not.toThrow();
     });
 
-    it('uses dry-run syncs and never invalidates during a dry run', () => {
+    it('dry-runs every upload in dependency-safe order without invalidating', () => {
         const commands = buildFrontendDeploymentCommands({
             bucketName: 'frontend-bucket',
             distributionId: 'DISTRIBUTION',
             execute: false,
         });
 
-        expect(commands[0].arguments).toContain('--dryrun');
-        expect(commands[1].arguments).toContain('--dryrun');
-        expect(commands[2]).toMatchObject({ executeOnly: true });
-        expect(commands[2].arguments).toEqual([
-            'cloudfront',
-            'create-invalidation',
-            '--distribution-id',
-            'DISTRIBUTION',
-            '--paths',
-            '/index.html',
+        expect(commands.map(({ arguments: arguments_ }) => arguments_.slice(0, 4)))
+            .toEqual([
+                ['s3', 'sync', 'src/ui/dist/assets', 's3://frontend-bucket/assets'],
+                ['s3', 'sync', 'src/ui/dist', 's3://frontend-bucket'],
+                ['s3', 'cp', 'src/ui/dist/index.html', 's3://frontend-bucket/index.html'],
+            ]);
+        expect(commands.every(({ arguments: arguments_ }) =>
+            arguments_.includes('--dryrun'))).toBe(true);
+        expect(commands.some(({ arguments: arguments_ }) =>
+            arguments_[0] === 'cloudfront')).toBe(false);
+        expect(commands[1].arguments).toEqual(expect.arrayContaining([
+            '--exclude',
+            'assets/*',
+            'index.html',
+        ]));
+        expect(commands[1].arguments[
+            commands[1].arguments.indexOf('index.html') - 1
+        ]).toBe('--exclude');
+        expect(commands.every(({ arguments: arguments_ }) =>
+            !arguments_.includes('--delete'))).toBe(true);
+    });
+
+    it('publishes index last and then invalidates only index on execution', () => {
+        const commands = buildFrontendDeploymentCommands({
+            bucketName: 'frontend-bucket',
+            distributionId: 'DISTRIBUTION',
+            execute: true,
+        });
+
+        expect(commands[2].arguments.slice(0, 4)).toEqual([
+            's3',
+            'cp',
+            'src/ui/dist/index.html',
+            's3://frontend-bucket/index.html',
+        ]);
+        expect(commands[3].arguments).toEqual([
+            'cloudfront', 'create-invalidation',
+            '--distribution-id', 'DISTRIBUTION',
+            '--paths', '/index.html',
         ]);
     });
 
@@ -88,9 +117,12 @@ describe('frontend asset deployment safety', () => {
             execute: true,
         });
 
-        expect(commands[0].arguments).toContain('no-cache, no-store, must-revalidate');
-        expect(commands[1].arguments).toContain('public, max-age=31536000, immutable');
-        expect(commands[0].arguments).not.toContain('--dryrun');
-        expect(commands[1].arguments).not.toContain('--dryrun');
+        expect(commands[0].arguments).toContain('public, max-age=31536000, immutable');
+        expect(commands[1].arguments).toContain('no-cache, no-store, must-revalidate');
+        expect(commands[2].arguments).toContain('no-cache, no-store, must-revalidate');
+        expect(commands.slice(0, 3).every(({ arguments: arguments_ }) =>
+            !arguments_.includes('--dryrun'))).toBe(true);
+        expect(commands.every(({ arguments: arguments_ }) =>
+            !arguments_.includes('--delete'))).toBe(true);
     });
 });

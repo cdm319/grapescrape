@@ -184,17 +184,21 @@ export GRAPESCRAPE_FRONTEND_DISTRIBUTION_ID="$(aws cloudformation describe-stack
 The default command first validates that exactly the seven documented public
 VITE values are present across Vite's production environment files and process
 environment, builds, scans the build for prohibited prototype or simulator
-artifacts and performs only AWS CLI `s3 sync --dryrun` operations. It prints,
-but does not create, the CloudFront invalidation:
+artifacts and dry-runs all three publication stages. It does not create a
+CloudFront invalidation:
 
 ```bash
 npm run frontend:deploy
 ```
 
-Review every proposed upload and deletion. The build must contain only normal
-production output such as `index.html`, the two SVG brand assets and hashed
-`assets/` files. It must not contain the prototype ZIP, `.dc.html`,
-`support.js`, screenshots or simulator/generated fixtures.
+Review every proposed upload. The build must contain only normal production
+output such as `index.html`, the two SVG brand assets and hashed `assets/`
+files. It must not contain the prototype ZIP, `.dc.html`, `support.js`,
+screenshots or simulator/generated fixtures.
+
+Review the order as well as the file list: hashed assets are uploaded first,
+other non-index files second, and `index.html` last. The final entry point can
+therefore reference only bundles that have already uploaded successfully.
 
 After human approval, execute the same reviewed plan:
 
@@ -202,11 +206,18 @@ After human approval, execute the same reviewed plan:
 npm run frontend:deploy -- --execute
 ```
 
-The script uses `--delete`, so it can remove stale objects from the current
-bucket view. Bucket versioning makes those removals recoverable. Non-assets,
-including `index.html`, receive `no-cache, no-store, must-revalidate`. Hashed
-`assets/*` receive `public, max-age=31536000, immutable`. Only `/index.html`
-is invalidated; hashed asset names never require invalidation.
+The script does not delete old objects. Previous content-hashed bundles remain
+available to open browser sessions and old entry points, which also makes an
+application rollback safer. Non-assets, including `index.html`, receive
+`no-cache, no-store, must-revalidate`. Hashed `assets/*` receive
+`public, max-age=31536000, immutable`. Only `/index.html` is invalidated, and
+only after every upload succeeds; hashed asset names never require
+invalidation.
+
+Review old hashed-asset storage separately after releases. Remove an old bundle
+only after confirming that no retained or rollback `index.html` references it.
+Any cleanup is a distinct destructive production operation and is not part of
+the publication script.
 
 ## 7. Finish managed-login branding
 
@@ -221,14 +232,17 @@ stack deployment rather than committing an unvalidated opaque JSON document:
 1. Open Cognito in `eu-west-2`, select `grapescrape-user-pool`.
 2. Open **Branding**, **Managed login**, choose the
    `grapescrape-user-pool-client` style, then **Edit**.
-3. Keep the deployed GrapeScrape form logo and favicon.
-4. Set page background to `#f4f3f0` in light mode and `#1b1d1c` in dark mode.
-5. Set form background to `#fbfaf7` in light mode and `#242725` in dark mode.
-6. Set the primary branding colour to `#157d6d` in light mode and `#2f9d89`
+3. Enable **Show logo**, select the deployed GrapeScrape `FORM_LOGO`, and apply
+   it to the adaptive/dynamic colour-mode experience.
+4. Select the deployed GrapeScrape favicon and preview it in the browser tab.
+5. Set page background to `#f4f3f0` in light mode and `#1b1d1c` in dark mode.
+6. Set form background to `#fbfaf7` in light mode and `#242725` in dark mode.
+7. Set the primary branding colour to `#157d6d` in light mode and `#2f9d89`
    in dark mode; use charcoal `#1b1d1c` for light-mode text.
-7. Use the managed system sans-serif typography. Do not upload font binaries.
-8. Preview sign-in, forgot-password, reset-password and error states at desktop
-   and mobile widths, then save.
+8. Use the managed system sans-serif typography. Do not upload font binaries.
+9. Preview sign-in, forgot-password, reset-password and error states at desktop
+   and mobile widths. Confirm that the form logo is visible in every state and
+   that the favicon remains selected, then save.
 
 Later CDK updates supply only image assets, so unspecified editor settings are
 preserved by Cognito's managed-login branding API. If branding is rebuilt,
@@ -276,34 +290,49 @@ In a private browser session verify:
 7. the browser sends `Authorization: Bearer ...` only to
    `api.grapescrape.com`;
 8. an unauthenticated `/v1/auth/session` request returns the API Gateway 401;
-9. an authenticated request succeeds and CORS allows only
-   `https://app.grapescrape.com`.
+9. an authenticated `GET /v1/auth/session` request succeeds and CORS allows
+   only `https://app.grapescrape.com`.
 
-### Responsive and accessible application
+### Responsive, accessible and read-only feature checks
 
 At desktop and 390px viewport widths verify:
 
 - no horizontal page scrolling;
 - mobile navigation is collapsed and **Assess a wine** remains reachable;
 - catalogue cards/rows, filter sheet and focus restoration work;
-- palate editing, history detail and manual-wine forms remain usable;
+- the current palate profile, assessed-wine history/detail and manual-wine list
+  render correctly;
+- palate and manual-wine forms can be opened and inspected without submitting;
 - all controls are keyboard reachable, focus is visible and icon-only controls
   have accessible names;
 - reduced-motion preference disables non-essential animation;
 - text, controls and status colours retain usable contrast.
 
-Complete feature smoke tests for Home partial failures, catalogue filters and
-reassessment, full-profile save/conflict handling, assessed-wine history and
-manual-wine create/edit/delete/assessment. Never use these smoke tests to call
-OpenAI unless a separate production-operation approval explicitly allows it.
+Keep the default production rollout read-only. Browse Home, catalogue filters,
+existing assessment states, the saved palate profile, assessed-wine history
+and existing manual wines. Do not submit palate changes, create/edit/delete a
+manual wine, request reassessment, request a manual-wine assessment, or call
+any API route that writes data or enqueues SQS messages.
+
+### Separately approved mutation and assessment checks
+
+Only after a distinct human approval for production data mutation, SQS work and
+OpenAI cost may an operator test palate saves, manual-wine create/edit/delete,
+reassessment, or manual assessment creation. Assessment requests call the
+assessment-request API, enqueue SQS messages and can cause the wine-assessor to
+call OpenAI; they cannot be exercised as a no-cost or read-only smoke test.
+Record the approved test sources and expected assessment count before starting,
+then verify the resulting queue, assessment and cost outcomes within that
+separately approved operation.
 
 ## 9. Rollback
 
 For a frontend regression, check out the last known-good Git commit and run the
-dry run, review it, then republish with `--execute`. Vite reproduces the old
-hashed bundles, the versioned bucket recovers names deleted by a newer sync,
-and invalidating `/index.html` makes the restored entry point visible. Do not
-invalidate `/*` unless a specific incident proves it necessary.
+dry run, review it, then republish with `--execute`. Previously published hashed
+bundles remain in the bucket, and the build-first sequence republishes any that
+are missing before replacing `index.html`. Invalidating `/index.html` makes the
+restored entry point visible. Do not invalidate `/*` unless a specific incident
+proves it necessary.
 
 For infrastructure regressions, revert the CM-48 infrastructure commit,
 review `cdk diff`, and deploy only after human approval. The asset bucket is
@@ -322,7 +351,10 @@ current prices before rollout at the official
 [S3](https://aws.amazon.com/s3/pricing/) and
 [ACM](https://aws.amazon.com/certificate-manager/pricing/) pages. After
 rollout, check Cost Explorer for unexpected CloudFront transfer/request,
-CloudFront Function and S3 request/storage growth.
+CloudFront Function and S3 request/storage growth. Old hashed bundles are
+retained intentionally, so monitor their storage and schedule a separately
+reviewed cleanup only when they are no longer referenced by any rollback entry
+point.
 
 Common failures:
 
@@ -340,5 +372,7 @@ Common failures:
 
 Rollout is successful when both domains have valid TLS, apex redirect and SPA
 deep links work, missing assets do not return HTML, cache/security headers are
-correct, all auth and core feature smoke tests pass at desktop and 390px, and
-the AWS cost check shows only the expected hosting resources.
+correct, all auth and read-only feature smoke checks pass at desktop and 390px,
+and the AWS cost check shows only the expected hosting resources. Mutating and
+assessment checks are optional later operations that require their own explicit
+approval.

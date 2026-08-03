@@ -27,6 +27,7 @@ const AUTH_DOMAIN_NAME = 'auth.grapescrape.com';
 const ROOT_DOMAIN_NAME = 'grapescrape.com';
 const FRONTEND_ORIGIN = `https://${APP_DOMAIN_NAME}`;
 const FRONTEND_CALLBACK_URL = `${FRONTEND_ORIGIN}/auth/callback`;
+const FRONTEND_LOGOUT_URL = `${FRONTEND_ORIGIN}/`;
 
 function frontendBrandingAsset(filename) {
     return readFileSync(
@@ -110,7 +111,7 @@ export class GrapeScrapeFutureStack extends Stack {
                     authorizationCodeGrant: true,
                 },
                 callbackUrls: [FRONTEND_CALLBACK_URL],
-                logoutUrls: [FRONTEND_ORIGIN],
+                logoutUrls: [FRONTEND_LOGOUT_URL],
                 scopes: [
                     cognito.OAuthScope.OPENID,
                     cognito.OAuthScope.EMAIL,
