@@ -14,11 +14,11 @@ function createHandler() {
     return context.handler;
 }
 
-function request(host, uri, querystring = {}) {
+function request(host, uri, rawQueryString) {
     return {
         request: {
             headers: { host: { value: host } },
-            querystring,
+            rawQueryString: () => rawQueryString,
             uri,
         },
     };
@@ -26,23 +26,34 @@ function request(host, uri, querystring = {}) {
 
 describe('frontend CloudFront request function', () => {
     it('redirects the root domain to the application host', () => {
-        expect(createHandler()(request('grapescrape.com', '/history/wine', {
-            returnTo: { value: '%2Fhistory%2Fwine' },
-            tag: {
-                multiValue: [{ value: 'red' }, { value: 'sale' }],
-                value: 'red',
-            },
-        }))).toEqual({
+        const rawQueryString =
+            'tag=red&returnTo=%2fhistory%2Fwine&flag&tag=sale+now&empty=';
+
+        expect(createHandler()(
+            request('grapescrape.com', '/history/wine', rawQueryString),
+        )).toEqual({
             statusCode: 301,
             statusDescription: 'Moved Permanently',
             headers: {
                 location: {
                     value:
-                        'https://app.grapescrape.com/history/wine?returnTo=%2Fhistory%2Fwine&tag=red&tag=sale',
+                        `https://app.grapescrape.com/history/wine?${rawQueryString}`,
                 },
                 'cache-control': { value: 'public, max-age=300' },
             },
         });
+    });
+
+    it('does not add a query marker when the request has no query string', () => {
+        const response = createHandler()(request('grapescrape.com', '/'));
+
+        expect(response.headers.location.value).toBe('https://app.grapescrape.com/');
+    });
+
+    it('preserves an explicitly empty query marker', () => {
+        const response = createHandler()(request('grapescrape.com', '/', ''));
+
+        expect(response.headers.location.value).toBe('https://app.grapescrape.com/?');
     });
 
     it.each(['/', '/wines', '/history/wine', '/palate/'])(

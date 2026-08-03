@@ -11,16 +11,8 @@ export function buildFrontendRequestFunctionCode({
     var host = request.headers.host && request.headers.host.value.toLowerCase();
 
     if (host === ${javascriptString(rootDomainName)}) {
-        var queryParts = [];
-        var querystring = request.querystring || {};
-        Object.keys(querystring).forEach(function (key) {
-            var parameter = querystring[key];
-            var values = parameter.multiValue || [parameter];
-            values.forEach(function (value) {
-                queryParts.push(key + '=' + value.value);
-            });
-        });
-        var query = queryParts.length > 0 ? '?' + queryParts.join('&') : '';
+        var rawQueryString = request.rawQueryString();
+        var query = rawQueryString === undefined ? '' : '?' + rawQueryString;
 
         return {
             statusCode: 301,
