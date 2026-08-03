@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">GrapeScrape</title>
+  <rect width="64" height="64" rx="14" fill="#fbfaf7"/>
+  <g fill="none" stroke="#157d6d" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="32" r="23" stroke-width="5" opacity=".2"/>
+    <path d="M32 9a23 23 0 1 1-22 30" stroke-width="5"/>
+    <path d="M23 20c1 14 17 14 18 0M32 31v11M25 42h14" stroke-width="3.5"/>
+  </g>
+  <circle cx="9" cy="36" r="5" fill="#157d6d"/>
+</svg>
