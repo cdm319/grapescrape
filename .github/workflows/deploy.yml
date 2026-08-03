@@ -54,16 +54,43 @@ jobs:
       - name: CDK synth
         run: npm run cdk:synth
 
+      - name: Confirm release commit is current main
+        id: release-freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! current_main_ref="$(git ls-remote origin refs/heads/main)"; then
+            echo "::error::Could not query the current main commit"
+            exit 1
+          fi
+
+          current_main_sha="${current_main_ref%%[[:space:]]*}"
+          if [[ ! "$current_main_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not resolve the current main commit"
+            exit 1
+          fi
+
+          if [[ "$GITHUB_SHA" == "$current_main_sha" ]]; then
+            echo "should-deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should-deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping stale release $GITHUB_SHA; current main is $current_main_sha"
+          fi
+
       - name: Configure AWS credentials
+        if: ${{ steps.release-freshness.outputs.should-deploy == 'true' }}
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: CDK deploy
+        if: ${{ steps.release-freshness.outputs.should-deploy == 'true' }}
         run: npm run cdk:deploy
 
       - name: Read frontend deployment outputs
+        if: ${{ steps.release-freshness.outputs.should-deploy == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -93,4 +120,5 @@ jobs:
           read_stack_output UserPoolClientId VITE_COGNITO_CLIENT_ID
 
       - name: Build and publish frontend
+        if: ${{ steps.release-freshness.outputs.should-deploy == 'true' }}
         run: npm run frontend:deploy -- --execute

@@ -6,9 +6,10 @@ string on the application host.
 
 Production releases run through GitHub Actions. Branch protection on `main` is
 the human approval boundary; there is no separate deployment environment gate.
-CM-48 changed workflow, infrastructure and documentation only. No workflow was
-run, no deployment was performed and no AWS resource or production data was
-changed while implementing the ticket.
+CM-48 changed workflow, infrastructure and documentation only. Credential-free
+pull-request CI run #107 completed successfully, but no deployment workflow was
+dispatched and no deployment, asset publication, AWS resource or production
+data change was performed while implementing the ticket.
 
 ## Routine release: every approved merge to main
 
@@ -34,12 +35,13 @@ authoritative release path:
    `/index.html`.
 
 The workflow uses one stable production concurrency group with cancellation
-disabled, so an active release is never canceled. GitHub keeps at most one
-pending run in a concurrency group and can replace an older pending run with a
-newer one. The active run completes first; the retained latest pending run then
-checks out its own `main` commit, which contains the skipped pending commits and
-converges production to the latest approved state. Routine operators must not
-run local CDK deploy or asset publication commands in parallel with Actions.
+disabled, so an active release is never canceled. GitHub does not guarantee the
+order in which queued runs start. Immediately before requesting AWS
+credentials, each run compares its commit with the current remote `main`.
+Stale runs finish successfully without configuring AWS credentials, deploying
+CDK or publishing assets. A run that cannot resolve remote `main` fails closed
+before OIDC. Routine operators must not run local CDK deploy or asset
+publication commands in parallel with Actions.
 
 ## First deployment only: complete these phases in order
 
@@ -242,7 +244,7 @@ In a private browser session confirm:
 2. public sign-up is unavailable;
 3. sign-in returns through `/auth/callback` to the intended route;
 4. logout returns to `https://app.grapescrape.com/` and protects the route;
-5. forgot-password and reset-password complete in managed login;
+5. the forgot-password page is reachable without submitting a reset request;
 6. an expired session returns to the normal sign-in flow;
 7. `Authorization: Bearer ...` is sent only to `api.grapescrape.com`;
 8. unauthenticated `GET /v1/auth/session` returns API Gateway 401;
@@ -267,7 +269,14 @@ Browse only existing Home, catalogue, palate, history and manual-wine data.
 Do not save a palate, create/edit/delete a manual wine, request reassessment,
 request a manual-wine assessment, or call any write/enqueue API.
 
-### Separately approved mutation and assessment checks
+### Separately approved authentication-mutation check
+
+Completing forgot-password/reset-password sends email and changes Cognito
+credentials. Test the complete flow only with separate authentication-mutation
+approval and an explicitly designated test user; never reset the normal
+production user's password as a read-only smoke check.
+
+### Separately approved production-data and assessment checks
 
 Palate saves and manual-wine changes mutate production data. Reassessment and
 manual assessment creation call the assessment-request API, enqueue SQS and can
