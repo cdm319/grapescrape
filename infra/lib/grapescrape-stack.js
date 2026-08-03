@@ -151,6 +151,7 @@ export class GrapeScrapeFutureStack extends Stack {
                     },
                 ],
                 clientId: userPoolClient.userPoolClientId,
+                settings: {},
                 userPoolId: userPool.userPoolId,
             },
         );

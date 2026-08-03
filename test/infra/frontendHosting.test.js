@@ -69,6 +69,30 @@ describe('frontend hosting infrastructure', () => {
         });
     });
 
+    it('uses custom managed-login settings with the branded assets', () => {
+        const template = futureStackTemplate();
+        const branding = Object.values(
+            template.findResources('AWS::Cognito::ManagedLoginBranding'),
+        )[0].Properties;
+
+        expect(branding).toMatchObject({
+            Assets: [
+                expect.objectContaining({
+                    Category: 'FORM_LOGO',
+                    ColorMode: 'DYNAMIC',
+                    Extension: 'SVG',
+                }),
+                expect.objectContaining({
+                    Category: 'FAVICON_SVG',
+                    ColorMode: 'DYNAMIC',
+                    Extension: 'SVG',
+                }),
+            ],
+            Settings: {},
+        });
+        expect(branding).not.toHaveProperty('UseCognitoProvidedValues');
+    });
+
     it('keeps the versioned asset bucket private and retained', () => {
         const template = frontendTemplate();
 
