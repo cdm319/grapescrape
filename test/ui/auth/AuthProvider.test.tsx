@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../../src/ui/src/App";
+import type { ApiClient } from "../../../src/ui/src/api/apiClient";
 import { AuthProvider } from "../../../src/ui/src/auth/AuthProvider";
 import {
   buildCognitoLogoutUrl,
@@ -44,12 +46,26 @@ function createFakeAuthClient({
 }
 
 function renderRoutes(client: AuthClient, initialEntry: string) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+  const apiClient: ApiClient = {
+    request: vi.fn().mockResolvedValue({
+      data: { items: [] },
+      meta: { requestId: "request-id", nextCursor: null },
+    }) as ApiClient["request"],
+  };
+
   return render(
-    <AuthProvider client={client}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <AppRoutes />
-      </MemoryRouter>
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider client={client}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <AppRoutes apiClient={apiClient} />
+        </MemoryRouter>
+      </AuthProvider>
+    </QueryClientProvider>,
   );
 }
 

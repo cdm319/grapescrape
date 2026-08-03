@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { EmptyState, InlineBanner, StatusBadge } from "../components/Primitives";
 
-function PageHeading({
+export function PageHeading({
   eyebrow,
   title,
   description,
@@ -92,18 +92,6 @@ export function WinesPage() {
       description="Search retailer stock and compare each wine with your palate."
       emptyTitle="The catalogue is on its way"
       emptyMessage="Current-stock browsing will be connected in the catalogue feature ticket."
-    />
-  );
-}
-
-export function HistoryPage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="Previously assessed"
-      title="Assessment history"
-      description="Revisit assessments while keeping fit and freshness easy to distinguish."
-      emptyTitle="Your history is on its way"
-      emptyMessage="Assessed-wine history will be connected in its dedicated feature ticket."
     />
   );
 }
