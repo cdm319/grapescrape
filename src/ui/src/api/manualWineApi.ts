@@ -163,6 +163,12 @@ export type AssessmentPollingResult =
 const waitFor = (delayMs: number) =>
   new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
 
+const POLLING_TIMEOUT_MS = 60_000;
+
+type DeadlineRequestResult<T> =
+  | { status: "completed"; response: T }
+  | { status: "timed_out" };
+
 export async function pollAssessmentUntilComplete({
   apiClient,
   request,
@@ -177,30 +183,49 @@ export async function pollAssessmentUntilComplete({
   shouldContinue?: () => boolean;
 }): Promise<AssessmentPollingResult> {
   let nextDelayMs = 2_000;
-  let elapsedMs = 0;
+  let hasObservedNotCompleted = false;
+  const deadline = Date.now() + POLLING_TIMEOUT_MS;
 
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    if (!shouldContinue() || elapsedMs + nextDelayMs > 60_000) {
+    const remainingBeforeWait = deadline - Date.now();
+
+    if (!shouldContinue() || remainingBeforeWait <= 0) {
       break;
     }
 
-    await wait(nextDelayMs);
-    elapsedMs += nextDelayMs;
+    await wait(Math.min(nextDelayMs, remainingBeforeWait));
 
     if (!shouldContinue()) {
       return { status: "cancelled" };
     }
 
+    const remainingForRequest = deadline - Date.now();
+
+    if (remainingForRequest <= 0) {
+      break;
+    }
+
     try {
-      const response = await apiClient.request<PublicAssessment>(
-        `/v1/assessed-wines/${encodeURIComponent(
-          request.sourceKey,
-        )}/assessments/${request.assessmentVersion}`,
+      const controller = new AbortController();
+      const result = await requestBeforeDeadline(
+        apiClient.request<PublicAssessment>(
+          `/v1/assessed-wines/${encodeURIComponent(
+            request.sourceKey,
+          )}/assessments/${request.assessmentVersion}`,
+          { signal: controller.signal },
+        ),
+        remainingForRequest,
+        controller,
       );
+
+      if (result.status === "timed_out") {
+        return { status: "timed_out" };
+      }
+
       onStatus("completed");
       return {
         status: "completed",
-        assessment: response.data,
+        assessment: result.response.data,
       };
     } catch (error) {
       if (
@@ -208,13 +233,16 @@ export async function pollAssessmentUntilComplete({
         error.status === 404 &&
         error.code === "ASSESSMENT_NOT_FOUND"
       ) {
+        hasObservedNotCompleted = true;
         onStatus("processing");
         nextDelayMs = 2_000;
         continue;
       }
 
       if (isRetryablePollingError(error)) {
-        onStatus("processing");
+        if (hasObservedNotCompleted) {
+          onStatus("processing");
+        }
         nextDelayMs = Math.min(nextDelayMs * 2, 10_000);
         continue;
       }
@@ -226,6 +254,43 @@ export async function pollAssessmentUntilComplete({
   return shouldContinue()
     ? { status: "timed_out" }
     : { status: "cancelled" };
+}
+
+async function requestBeforeDeadline<T>(
+  requestPromise: Promise<T>,
+  remainingMs: number,
+  controller: AbortController,
+): Promise<DeadlineRequestResult<T>> {
+  let timeoutId: number | undefined;
+  let deadlineReached = false;
+
+  const timeout = new Promise<DeadlineRequestResult<T>>((resolve) => {
+    timeoutId = window.setTimeout(
+      () => {
+        deadlineReached = true;
+        resolve({ status: "timed_out" });
+        controller.abort();
+      },
+      remainingMs,
+    );
+  });
+  const response = requestPromise.then<DeadlineRequestResult<T>>(
+    (value) => ({ status: "completed", response: value }),
+  );
+
+  try {
+    return await Promise.race([response, timeout]);
+  } catch (error) {
+    if (deadlineReached) {
+      return { status: "timed_out" };
+    }
+
+    throw error;
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 }
 
 export function queuedRequestFromError(

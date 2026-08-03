@@ -20,11 +20,9 @@ import { AssessedWineHistoryPage } from "./pages/AssessedWineHistoryPage";
 import { CallbackPage } from "./pages/CallbackPage";
 import { HomeDashboardRoute } from "./pages/HomeDashboardPage";
 import { ManualWinesRoute } from "./pages/ManualWinesPage";
-import {
-  NotFoundPage,
-  WinesPage,
-} from "./pages/PlaceholderPages";
+import { NotFoundPage } from "./pages/PlaceholderPages";
 import { PalateProfilePage } from "./pages/PalateProfilePage";
+import { WinesPage } from "./pages/WinesPage";
 
 export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
   return (
@@ -33,7 +31,7 @@ export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route index element={<HomeDashboardRoute apiClient={apiClient} />} />
-          <Route path="wines" element={<WinesPage />} />
+          <Route path="wines" element={<WinesPage apiClient={apiClient} />} />
           <Route path="palate" element={<PalateProfilePage />} />
           <Route
             path="history"
