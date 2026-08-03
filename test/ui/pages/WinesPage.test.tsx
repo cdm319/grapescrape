@@ -145,19 +145,34 @@ describe("current-stock catalogue", () => {
       .toHaveAttribute("href", `/history/${encodeURIComponent(sourceOne)}`);
   });
 
-  it("opens an accessible mobile filter sheet and closes it with Escape", async () => {
+  it("traps focus in the mobile filter sheet and restores the trigger on close", async () => {
     const { apiClient } = client(async () => envelope({ items: [] }));
 
     renderPage({ apiClient });
     await screen.findByRole("heading", { name: "No wines match those filters" });
-    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const trigger = screen.getByRole("button", { name: "Filters" });
+    trigger.focus();
+    fireEvent.click(trigger);
 
     const sheet = await screen.findByRole("dialog", { name: "Catalogue filters" });
-    expect(within(sheet).getByLabelText("Minimum price")).toBeInTheDocument();
+    await waitFor(() => expect(sheet).toHaveFocus());
+    const firstControl = within(sheet).getByRole("button", { name: "Close filters" });
+    const lastControl = within(sheet).getByRole("button", { name: "Clear all" });
+
+    fireEvent.keyDown(sheet, { key: "Tab" });
+    expect(firstControl).toHaveFocus();
+    lastControl.focus();
+    fireEvent.keyDown(lastControl, { key: "Tab" });
+    expect(firstControl).toHaveFocus();
+    firstControl.focus();
+    fireEvent.keyDown(firstControl, { key: "Tab", shiftKey: true });
+    expect(lastControl).toHaveFocus();
+
     fireEvent.keyDown(sheet, { key: "Escape" });
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: "Catalogue filters" }))
         .not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
     });
   });
 
@@ -344,10 +359,15 @@ describe("current-stock catalogue", () => {
       status: "completed",
       assessment: completedAssessment,
     } satisfies AssessmentPollingResult);
+    const refreshedWine = wine({ freshness: "current" });
+    refreshedWine.latestAssessment = {
+      ...refreshedWine.latestAssessment!,
+      ...completedAssessment,
+    };
     const { apiClient } = client(async (path, options) => {
       if (path.startsWith("/v1/catalogue/wines?")) {
         listCalls += 1;
-        return envelope({ items: [wine()] });
+        return envelope({ items: [listCalls === 1 ? wine() : refreshedWine] });
       }
       if (path === "/v1/assessment-requests" && options?.method === "POST") {
         return envelope({
@@ -366,6 +386,15 @@ describe("current-stock catalogue", () => {
     fireEvent.click(within(confirmation).getByRole("button", { name: "Request 1 assessment" }));
 
     await waitFor(() => expect(listCalls).toBe(2));
+    await waitFor(() => {
+      expect(within(drawer).getByText("Strong fit")).toBeInTheDocument();
+      expect(within(drawer).getByText("Assessment current")).toBeInTheDocument();
+      expect(within(drawer).getByText("Now a strong fit")).toBeInTheDocument();
+      expect(within(drawer).getByText("Assessment complete.")).toBeInTheDocument();
+    });
+    expect(
+      within(drawer).queryByText("Assessment completed. Catalogue details are refreshing."),
+    ).not.toBeInTheDocument();
   });
 
   it("enforces the 25-wine selection cap before confirmation", async () => {

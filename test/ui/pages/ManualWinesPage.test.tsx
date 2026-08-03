@@ -543,6 +543,168 @@ describe("assessment completion polling", () => {
       `/v1/assessed-wines/${encodeURIComponent(
         sourceKey,
       )}/assessments/3`,
+      { signal: expect.any(AbortSignal) },
     );
   });
+
+  it.each([
+    [0, "NETWORK_ERROR"],
+    [429, "RATE_LIMITED"],
+    [503, "SERVICE_UNAVAILABLE"],
+  ])(
+    "keeps the queued status through a retryable %i before the first not-found response",
+    async (status, code) => {
+      const statuses: string[] = [];
+      const wait = vi.fn().mockResolvedValue(undefined);
+      let pollCalls = 0;
+      const { client } = apiClient(async () => {
+        pollCalls += 1;
+
+        if (pollCalls === 1) {
+          throw new ApiError({
+            status,
+            code,
+            message: "The service is temporarily unavailable.",
+          });
+        }
+
+        return envelope(assessment);
+      });
+
+      await expect(
+        pollAssessmentUntilComplete({
+          apiClient: client,
+          request: {
+            sourceKey,
+            requestId: "assessment-request-1",
+            assessmentVersion: 3,
+          },
+          wait,
+          onStatus: (status) => statuses.push(status),
+        }),
+      ).resolves.toEqual({ status: "completed", assessment });
+
+      expect(wait).toHaveBeenNthCalledWith(1, 2_000);
+      expect(wait).toHaveBeenNthCalledWith(2, 4_000);
+      expect(statuses).toEqual(["completed"]);
+    },
+  );
+
+  it("retains processing status through retryable failures after a not-found response", async () => {
+    const statuses: string[] = [];
+    const wait = vi.fn().mockResolvedValue(undefined);
+    let pollCalls = 0;
+    const { client } = apiClient(async () => {
+      pollCalls += 1;
+
+      if (pollCalls === 1) {
+        throw new ApiError({
+          status: 404,
+          code: "ASSESSMENT_NOT_FOUND",
+          message: "The assessment was not found.",
+        });
+      }
+
+      if (pollCalls === 2) {
+        throw new ApiError({
+          status: 429,
+          code: "RATE_LIMITED",
+          message: "Try again later.",
+        });
+      }
+
+      return envelope(assessment);
+    });
+
+    await expect(
+      pollAssessmentUntilComplete({
+        apiClient: client,
+        request: {
+          sourceKey,
+          requestId: "assessment-request-1",
+          assessmentVersion: 3,
+        },
+        wait,
+        onStatus: (status) => statuses.push(status),
+      }),
+    ).resolves.toEqual({ status: "completed", assessment });
+
+    expect(wait).toHaveBeenNthCalledWith(1, 2_000);
+    expect(wait).toHaveBeenNthCalledWith(2, 2_000);
+    expect(wait).toHaveBeenNthCalledWith(3, 4_000);
+    expect(statuses).toEqual(["processing", "processing", "completed"]);
+  });
+
+  it("stops a hung request at the wall-clock deadline and reports a timeout even when abort rejects", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-03T12:00:00.000Z"));
+
+    try {
+      let requestSignal: AbortSignal | null | undefined;
+      const wait = vi.fn(async (delayMs: number) => {
+        vi.advanceTimersByTime(delayMs);
+      });
+      const { client, request } = apiClient(async (_path, options) => {
+        requestSignal = options?.signal;
+
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The request was aborted.", "AbortError"));
+          });
+        });
+      });
+
+      const polling = pollAssessmentUntilComplete({
+        apiClient: client,
+        request: {
+          sourceKey,
+          requestId: "assessment-request-1",
+          assessmentVersion: 3,
+        },
+        wait,
+        onStatus: vi.fn(),
+      });
+
+      await Promise.resolve();
+      expect(request).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(58_000);
+
+      await expect(polling).resolves.toEqual({ status: "timed_out" });
+      expect(requestSignal?.aborted).toBe(true);
+      expect(Date.now()).toBe(new Date("2026-08-03T12:01:00.000Z").getTime());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([401, 400])(
+    "stops polling on a non-retryable %i response",
+    async (status) => {
+      const error = new ApiError({
+        status,
+        code: status === 401 ? "UNAUTHORIZED" : "BAD_REQUEST",
+        message: "Polling cannot continue.",
+      });
+      const onStatus = vi.fn();
+      const { client, request } = apiClient(async () => {
+        throw error;
+      });
+
+      await expect(
+        pollAssessmentUntilComplete({
+          apiClient: client,
+          request: {
+            sourceKey,
+            requestId: "assessment-request-1",
+            assessmentVersion: 3,
+          },
+          wait: vi.fn().mockResolvedValue(undefined),
+          onStatus,
+        }),
+      ).rejects.toBe(error);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(onStatus).not.toHaveBeenCalled();
+    },
+  );
 });

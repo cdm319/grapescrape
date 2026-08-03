@@ -204,7 +204,7 @@ function TransientAssessmentLabel({ state }: { state?: AssessmentState }) {
     requesting: "Requesting assessment…",
     queued: "Queued. The first completion check starts in two seconds.",
     processing: "Waiting for the completed assessment…",
-    completed: "Assessment completed. Catalogue details are refreshing.",
+    completed: "Assessment complete.",
   };
 
   return <p className="catalogue-request-status" role="status">{messages[state.status]}</p>;

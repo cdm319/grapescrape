@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ApiClient } from "../api/apiClient";
@@ -74,6 +75,8 @@ export function WinesPage({
   const mounted = useRef(true);
   const submissionInFlight = useRef(false);
   const filterSheet = useRef<HTMLElement>(null);
+  const filterTrigger = useRef<HTMLButtonElement>(null);
+  const filterWasOpen = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterDraft, setFilterDraft] = useState(() =>
     filterDraftFromSearch(searchParams),
@@ -138,7 +141,14 @@ export function WinesPage({
 
   useEffect(() => {
     if (filtersOpen) {
+      filterWasOpen.current = true;
       filterSheet.current?.focus();
+      return;
+    }
+
+    if (filterWasOpen.current) {
+      filterWasOpen.current = false;
+      filterTrigger.current?.focus();
     }
   }, [filtersOpen]);
 
@@ -167,9 +177,9 @@ export function WinesPage({
           });
 
           if (result.status === "completed") {
-            setAssessmentState(request.sourceKey, { status: "completed" });
             if (mounted.current) {
-              void catalogue.refetch();
+              await catalogue.refetch();
+              setAssessmentState(request.sourceKey, { status: "completed" });
             }
           } else if (result.status === "timed_out") {
             setAssessmentState(request.sourceKey, {
@@ -385,6 +395,9 @@ export function WinesPage({
     wines.length > 0 &&
     wines.every((wine) => Boolean(selectedWines[wine.sourceKey]));
   const sortValue = `${filters.sort}:${filters.direction}`;
+  const displayedDetailWine = detailWine
+    ? wines.find((wine) => wine.sourceKey === detailWine.sourceKey) ?? detailWine
+    : undefined;
 
   return (
     <div className="page-stack catalogue-page">
@@ -404,7 +417,10 @@ export function WinesPage({
         <Button
           className="catalogue-filter-toggle"
           variant="secondary"
-          onClick={() => setFiltersOpen(true)}
+          onClick={(event) => {
+            filterTrigger.current = event.currentTarget;
+            setFiltersOpen(true);
+          }}
           aria-expanded={filtersOpen}
         >
           Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
@@ -449,11 +465,9 @@ export function WinesPage({
             aria-modal="true"
             aria-labelledby="mobile-filter-title"
             tabIndex={-1}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                setFiltersOpen(false);
-              }
-            }}
+            onKeyDown={(event) =>
+              handleFilterSheetKeyDown(event, () => setFiltersOpen(false))
+            }
           >
             <div className="overlay-heading">
               <h2 id="mobile-filter-title">Catalogue filters</h2>
@@ -607,15 +621,15 @@ export function WinesPage({
       )}
 
       <DetailDrawer
-        open={Boolean(detailWine)}
-        title={detailWine?.name ?? "Wine details"}
+        open={Boolean(displayedDetailWine)}
+        title={displayedDetailWine?.name ?? "Wine details"}
         onClose={() => setDetailWine(undefined)}
       >
-        {detailWine && (
+        {displayedDetailWine && (
           <CatalogueWineDetails
-            wine={detailWine}
-            assessmentState={assessmentStates[detailWine.sourceKey]}
-            onAssess={() => openAssessmentConfirmation([detailWine])}
+            wine={displayedDetailWine}
+            assessmentState={assessmentStates[displayedDetailWine.sourceKey]}
+            onAssess={() => openAssessmentConfirmation([displayedDetailWine])}
           />
         )}
       </DetailDrawer>
@@ -683,4 +697,55 @@ export function WinesPage({
 
 function safeErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+const focusableFilterElements = [
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "a[href]",
+].join(",");
+
+function handleFilterSheetKeyDown(
+  event: ReactKeyboardEvent<HTMLElement>,
+  close: () => void,
+) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    close();
+    return;
+  }
+
+  if (event.key !== "Tab") {
+    return;
+  }
+
+  const focusable = Array.from(
+    event.currentTarget.querySelectorAll<HTMLElement>(focusableFilterElements),
+  );
+
+  if (focusable.length === 0) {
+    event.preventDefault();
+    event.currentTarget.focus();
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable.at(-1)!;
+  const activeElement = document.activeElement;
+
+  if (
+    event.shiftKey &&
+    (activeElement === first || activeElement === event.currentTarget)
+  ) {
+    event.preventDefault();
+    last.focus();
+  } else if (
+    !event.shiftKey &&
+    (activeElement === last || activeElement === event.currentTarget)
+  ) {
+    event.preventDefault();
+    first.focus();
+  }
 }
