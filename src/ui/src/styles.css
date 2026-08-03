@@ -2177,6 +2177,466 @@ p {
   }
 }
 
+/* Current-stock catalogue */
+
+.catalogue-page,
+.catalogue-filter-form label {
+  min-width: 0;
+}
+
+.catalogue-toolbar,
+.catalogue-result-heading,
+.selection-bar,
+.selection-bar > div,
+.catalogue-detail__identity,
+.catalogue-detail__badges,
+.catalogue-mobile-card__badges,
+.selection-review li {
+  display: flex;
+  align-items: center;
+}
+
+.catalogue-toolbar,
+.catalogue-result-heading,
+.selection-bar,
+.catalogue-detail__identity,
+.selection-review li {
+  justify-content: space-between;
+}
+
+.catalogue-toolbar {
+  align-items: end;
+  gap: 12px;
+}
+
+.catalogue-sort,
+.catalogue-filter-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.catalogue-sort select,
+.catalogue-filter-form input,
+.catalogue-filter-form select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.catalogue-filter-toggle,
+.catalogue-filter-layer,
+.catalogue-mobile-list {
+  display: none;
+}
+
+.catalogue-filters {
+  padding: 18px;
+  border: 1px solid rgba(27, 29, 28, 0.08);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.catalogue-filter-form {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: 13px;
+}
+
+.catalogue-search-field {
+  grid-column: span 2;
+}
+
+.catalogue-filter-error,
+.catalogue-filter-actions {
+  grid-column: 1 / -1;
+}
+
+.catalogue-filter-error,
+.catalogue-result-heading p,
+.catalogue-pagination p {
+  margin: 0;
+}
+
+.catalogue-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.selection-bar {
+  position: sticky;
+  top: 84px;
+  z-index: 10;
+  gap: 20px;
+  padding: 13px 16px;
+  border: 1px solid rgba(21, 125, 109, 0.28);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-soft) 92%, white);
+  box-shadow: var(--shadow);
+}
+
+.selection-bar > div {
+  gap: 10px;
+}
+
+.selection-bar > div:first-child {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selection-bar span,
+.catalogue-result-heading p,
+.catalogue-pagination p {
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.catalogue-loading {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.catalogue-table-wrap {
+  width: 100%;
+  border: 1px solid rgba(27, 29, 28, 0.08);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.catalogue-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.catalogue-table th,
+.catalogue-table td {
+  padding: 13px 10px;
+  border-bottom: 1px solid var(--surface-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.catalogue-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.catalogue-table th {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.catalogue-table th:nth-child(2) { width: 25%; }
+.catalogue-table th:nth-child(3) { width: 14%; }
+.catalogue-table th:nth-child(4) { width: 8%; }
+.catalogue-table th:nth-child(5),
+.catalogue-table th:nth-child(6) { width: 12%; }
+.catalogue-table th:nth-child(7) { width: 17%; }
+
+.catalogue-table td {
+  color: #303430;
+  font-size: 0.82rem;
+}
+
+.catalogue-table td > strong,
+.catalogue-table td small {
+  display: block;
+}
+
+.catalogue-table td > strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.catalogue-table td > strong span,
+.catalogue-mobile-card h2 span {
+  color: var(--ink-soft);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.catalogue-table td small {
+  margin-top: 3px;
+  color: var(--ink-muted);
+  line-height: 1.35;
+}
+
+.catalogue-table .catalogue-select-cell {
+  width: 46px;
+  text-align: center;
+}
+
+.catalogue-select-cell input,
+.catalogue-mobile-card input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.catalogue-table .catalogue-price {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.catalogue-table .status-badge {
+  white-space: normal;
+}
+
+.catalogue-request-status {
+  margin: 6px 0 0;
+  color: var(--warning);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.catalogue-request-status--error {
+  color: var(--error);
+}
+
+.catalogue-pagination {
+  display: flex;
+  justify-content: center;
+}
+
+.catalogue-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.catalogue-detail > p {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+
+.catalogue-detail__identity {
+  align-items: baseline;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.catalogue-detail__identity p {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.catalogue-detail__identity strong {
+  font: 400 1.65rem/1 "Instrument Serif", Georgia, serif;
+}
+
+.catalogue-detail__badges,
+.catalogue-mobile-card__badges {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.catalogue-assessment-summary {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+
+.catalogue-assessment-summary h3,
+.catalogue-assessment-summary p,
+.catalogue-assessment-summary ul {
+  margin: 0;
+}
+
+.catalogue-assessment-summary h3 {
+  font: italic 1.35rem/1.2 "Instrument Serif", Georgia, serif;
+}
+
+.catalogue-assessment-summary p,
+.catalogue-assessment-summary li {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.catalogue-assessment-summary summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.catalogue-confirmation > ul,
+.selection-review ul {
+  max-height: 320px;
+  margin: 0;
+  overflow: auto;
+}
+
+.selection-review ul {
+  padding: 0;
+  list-style: none;
+}
+
+.selection-review li {
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 980px) {
+  .catalogue-filter-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .catalogue-table th:nth-child(3),
+  .catalogue-table td:nth-child(3),
+  .catalogue-table th:nth-child(6),
+  .catalogue-table td:nth-child(6) {
+    display: none;
+  }
+
+  .catalogue-table th:nth-child(2) { width: 30%; }
+}
+
+@media (max-width: 720px) {
+  .catalogue-page { gap: 22px; }
+
+  .catalogue-toolbar {
+    align-items: stretch;
+    justify-content: space-between;
+  }
+
+  .catalogue-filter-toggle { display: inline-flex; }
+  .catalogue-sort { min-width: 0; }
+  .catalogue-sort select { max-width: 190px; }
+  .catalogue-filters--desktop { display: none; }
+
+  .catalogue-filter-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+
+  .catalogue-filter-layer.is-open { display: block; }
+
+  .catalogue-filter-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0;
+    background: rgba(18, 22, 20, 0.46);
+  }
+
+  .catalogue-filter-sheet {
+    position: absolute;
+    inset: auto 0 0;
+    max-height: min(88vh, 760px);
+    padding: 20px;
+    border-radius: 18px 18px 0 0;
+    background: var(--surface-raised);
+    box-shadow: 0 -22px 60px -34px rgba(20, 25, 23, 0.62);
+    overflow-y: auto;
+  }
+
+  .catalogue-filter-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalogue-search-field,
+  .catalogue-filter-actions,
+  .catalogue-filter-error { grid-column: 1 / -1; }
+
+  .selection-bar {
+    top: 74px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .selection-bar > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .selection-bar > div:last-child .button:last-child { grid-column: 1 / -1; }
+  .catalogue-loading { grid-template-columns: 1fr; }
+  .catalogue-table-wrap { display: none; }
+
+  .catalogue-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .catalogue-mobile-card {
+    min-width: 0;
+    padding: 17px;
+    border: 1px solid rgba(27, 29, 28, 0.08);
+    border-radius: 14px;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+  }
+
+  .catalogue-mobile-card__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .catalogue-mobile-card__heading label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  .catalogue-mobile-card h2 {
+    margin: 13px 0 3px;
+    font: 400 1.35rem/1.15 "Instrument Serif", Georgia, serif;
+  }
+
+  .catalogue-mobile-card > p {
+    margin: 0 0 12px;
+    color: var(--ink-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .catalogue-mobile-card .button {
+    width: 100%;
+    margin-top: 14px;
+  }
+
+  .catalogue-card-confidence { margin-top: 9px !important; }
+}
+
+@media (max-width: 480px) {
+  .catalogue-toolbar { flex-direction: column; }
+  .catalogue-sort select { max-width: none; }
+  .catalogue-filter-form { grid-template-columns: 1fr; }
+
+  .catalogue-filter-form > *,
+  .catalogue-search-field,
+  .catalogue-filter-actions,
+  .catalogue-filter-error { grid-column: 1; }
+
+  .catalogue-filter-actions { display: grid; }
+  .selection-bar > div:last-child { grid-template-columns: 1fr; }
+  .selection-bar > div:last-child .button:last-child { grid-column: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

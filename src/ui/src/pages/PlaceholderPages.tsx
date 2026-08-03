@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { EmptyState } from "../components/Primitives";
 
 export function PageHeading({
   eyebrow,
@@ -16,41 +15,6 @@ export function PageHeading({
       <h1>{title}</h1>
       <p>{description}</p>
     </header>
-  );
-}
-
-function FeaturePlaceholder({
-  eyebrow,
-  title,
-  description,
-  emptyTitle,
-  emptyMessage,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  emptyTitle: string;
-  emptyMessage: string;
-}) {
-  return (
-    <div className="page-stack">
-      <PageHeading eyebrow={eyebrow} title={title} description={description} />
-      <section className="content-panel">
-        <EmptyState title={emptyTitle} message={emptyMessage} />
-      </section>
-    </div>
-  );
-}
-
-export function WinesPage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="Current stock"
-      title="Available wines"
-      description="Search retailer stock and compare each wine with your palate."
-      emptyTitle="The catalogue is on its way"
-      emptyMessage="Current-stock browsing will be connected in the catalogue feature ticket."
-    />
   );
 }
 
