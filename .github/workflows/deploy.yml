@@ -12,8 +12,20 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy CDK stack
+    name: Deploy application
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: grapescrape-production-deploy
+      cancel-in-progress: false
+    env:
+      AWS_REGION: eu-west-2
+      STACK_NAME: GrapeScrapeFutureStack
+      VITE_API_BASE_URL: https://api.grapescrape.com
+      VITE_COGNITO_AUTH_DOMAIN: https://auth.grapescrape.com
+      VITE_COGNITO_REGION: eu-west-2
+      VITE_COGNITO_CALLBACK_URL: https://app.grapescrape.com/auth/callback
+      VITE_COGNITO_LOGOUT_URL: https://app.grapescrape.com/
 
     steps:
       - name: Check out repository
@@ -30,14 +42,55 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: eu-west-2
+      - name: Run lint
+        run: npm run lint
+
+      - name: Typecheck frontend
+        run: npm --workspace @grapescrape/ui run typecheck
+
+      - name: Build frontend
+        run: npm --workspace @grapescrape/ui run build
 
       - name: CDK synth
         run: npm run cdk:synth
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: CDK deploy
         run: npm run cdk:deploy
+
+      - name: Read frontend deployment outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_stack_output() {
+            local output_key="$1"
+            local environment_name="$2"
+            local value
+
+            value="$(aws cloudformation describe-stacks \
+              --region "$AWS_REGION" \
+              --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue | [0]" \
+              --output text)"
+
+            if [[ -z "$value" || "$value" == "None" ]]; then
+              echo "::error::Missing required $STACK_NAME output: $output_key"
+              exit 1
+            fi
+
+            printf '%s=%s\n' "$environment_name" "$value" >> "$GITHUB_ENV"
+          }
+
+          read_stack_output FrontendBucketName GRAPESCRAPE_FRONTEND_BUCKET
+          read_stack_output FrontendDistributionId GRAPESCRAPE_FRONTEND_DISTRIBUTION_ID
+          read_stack_output UserPoolId VITE_COGNITO_USER_POOL_ID
+          read_stack_output UserPoolClientId VITE_COGNITO_CLIENT_ID
+
+      - name: Build and publish frontend
+        run: npm run frontend:deploy -- --execute

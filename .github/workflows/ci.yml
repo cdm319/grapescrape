@@ -26,5 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Run full test suite
         run: npm test
+
+      - name: Lint workspaces
+        run: npm run lint
+
+      - name: Type-check frontend
+        run: npm --workspace @grapescrape/ui run typecheck
+
+      - name: Build production frontend
+        run: npm --workspace @grapescrape/ui run build
+
+      - name: Synthesize CDK application
+        run: npm run cdk:synth
