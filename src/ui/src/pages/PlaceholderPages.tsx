@@ -96,18 +96,6 @@ export function WinesPage() {
   );
 }
 
-export function AssessWinePage() {
-  return (
-    <FeaturePlaceholder
-      eyebrow="A bottle of your own"
-      title="Assess a wine"
-      description="Add a wine that is not in retailer stock and assess it against your current palate."
-      emptyTitle="Manual assessment is on its way"
-      emptyMessage="The manual-wine workflow will be connected once its API is available."
-    />
-  );
-}
-
 export function NotFoundPage() {
   return (
     <div className="page-stack">

@@ -18,8 +18,8 @@ import type { PublicConfig } from "./config";
 import { AssessedWineDetail } from "./pages/AssessedWineDetail";
 import { AssessedWineHistoryPage } from "./pages/AssessedWineHistoryPage";
 import { CallbackPage } from "./pages/CallbackPage";
+import { ManualWinesRoute } from "./pages/ManualWinesPage";
 import {
-  AssessWinePage,
   HomePage,
   NotFoundPage,
   WinesPage,
@@ -44,7 +44,10 @@ export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
               element={<AssessedWineDetail apiClient={apiClient} />}
             />
           </Route>
-          <Route path="assess" element={<AssessWinePage />} />
+          <Route
+            path="assess"
+            element={<ManualWinesRoute apiClient={apiClient} />}
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
