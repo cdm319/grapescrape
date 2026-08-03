@@ -18,9 +18,9 @@ import type { PublicConfig } from "./config";
 import { AssessedWineDetail } from "./pages/AssessedWineDetail";
 import { AssessedWineHistoryPage } from "./pages/AssessedWineHistoryPage";
 import { CallbackPage } from "./pages/CallbackPage";
+import { HomeDashboardRoute } from "./pages/HomeDashboardPage";
 import { ManualWinesRoute } from "./pages/ManualWinesPage";
 import {
-  HomePage,
   NotFoundPage,
   WinesPage,
 } from "./pages/PlaceholderPages";
@@ -32,7 +32,7 @@ export function AppRoutes({ apiClient }: { apiClient: ApiClient }) {
       <Route path="/auth/callback" element={<CallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<HomeDashboardRoute apiClient={apiClient} />} />
           <Route path="wines" element={<WinesPage />} />
           <Route path="palate" element={<PalateProfilePage />} />
           <Route
