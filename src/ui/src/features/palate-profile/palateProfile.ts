@@ -162,8 +162,13 @@ export function createEmptyPalateProfileDraft(): PalateProfileDraft {
 }
 
 export function profileToDraft(profile: PalateProfile): PalateProfileDraft {
+  const emptyProfile = createEmptyPalateProfileDraft();
+
   return structuredClone({
-    stylePreferences: profile.stylePreferences,
+    stylePreferences: {
+      ...emptyProfile.stylePreferences,
+      ...profile.stylePreferences,
+    },
     wineExamples: profile.wineExamples,
   });
 }

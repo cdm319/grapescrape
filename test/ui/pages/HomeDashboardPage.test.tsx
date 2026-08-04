@@ -225,6 +225,24 @@ function renderDashboard(apiClient: ApiClient) {
 }
 
 describe("Home dashboard", () => {
+  it("renders a legacy profile with missing preference dimensions", async () => {
+    const currentProfile = palateProfile();
+    const legacyProfile = {
+      ...currentProfile,
+      stylePreferences: {
+        body: currentProfile.stylePreferences.body,
+      },
+    } as PalateProfile;
+    const { apiClient } = createApiClient({
+      [paths.palate]: envelope(legacyProfile),
+    });
+
+    renderDashboard(apiClient);
+
+    expect(await screen.findByText("medium plus, full")).toBeInTheDocument();
+    expect(screen.getByText("light")).toBeInTheDocument();
+  });
+
   it("uses bounded API calls and ranks highlighted recommendations by canonical fit and confidence", async () => {
     const recommendations = [
       catalogueWine({

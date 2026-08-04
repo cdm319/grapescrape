@@ -109,6 +109,27 @@ beforeAll(() => {
 });
 
 describe("palate profile page", () => {
+  it("renders and edits a legacy profile with missing preference dimensions", async () => {
+    const legacyProfile = {
+      ...profile,
+      stylePreferences: {
+        body: stylePreferences.body,
+      },
+    } as PalateProfile;
+    const request = vi.fn().mockResolvedValue(profileEnvelope(legacyProfile));
+
+    renderPage({ request });
+
+    expect(await screen.findByText("Version 4")).toBeInTheDocument();
+    expect(screen.getByText("Full")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit profile" }));
+
+    expect(
+      screen.getByRole("button", { name: "Prefer Black fruit" }),
+    ).toBeInTheDocument();
+  });
+
   it("loads the current profile in a genuinely read-only view", async () => {
     const request = vi.fn().mockResolvedValue(profileEnvelope(profile));
 
