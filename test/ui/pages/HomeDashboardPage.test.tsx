@@ -232,7 +232,8 @@ describe("Home dashboard", () => {
       stylePreferences: {
         body: currentProfile.stylePreferences.body,
       },
-    } as PalateProfile;
+      wineExamples: undefined,
+    } as unknown as PalateProfile;
     const { apiClient } = createApiClient({
       [paths.palate]: envelope(legacyProfile),
     });
@@ -241,6 +242,9 @@ describe("Home dashboard", () => {
 
     expect(await screen.findByText("medium plus, full")).toBeInTheDocument();
     expect(screen.getByText("light")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Palate example counts")).getAllByText("0"),
+    ).toHaveLength(2);
   });
 
   it("uses bounded API calls and ranks highlighted recommendations by canonical fit and confidence", async () => {
