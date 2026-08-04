@@ -169,7 +169,7 @@ export function profileToDraft(profile: PalateProfile): PalateProfileDraft {
       ...emptyProfile.stylePreferences,
       ...profile.stylePreferences,
     },
-    wineExamples: profile.wineExamples,
+    wineExamples: profile.wineExamples ?? [],
   });
 }
 

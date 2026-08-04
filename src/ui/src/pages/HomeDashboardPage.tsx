@@ -297,10 +297,11 @@ function PalateSection({
 
   const preferred = preferenceSummary(query.data, "preferred");
   const avoided = preferenceSummary(query.data, "avoided");
-  const enjoyed = query.data.wineExamples.filter(
+  const wineExamples = query.data.wineExamples ?? [];
+  const enjoyed = wineExamples.filter(
     (wine) => wine.sentiment === "enjoyed",
   ).length;
-  const notEnjoyed = query.data.wineExamples.length - enjoyed;
+  const notEnjoyed = wineExamples.length - enjoyed;
 
   return (
     <section className="dashboard-side-card" aria-labelledby="palate-heading">

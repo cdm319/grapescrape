@@ -115,7 +115,8 @@ describe("palate profile page", () => {
       stylePreferences: {
         body: stylePreferences.body,
       },
-    } as PalateProfile;
+      wineExamples: undefined,
+    } as unknown as PalateProfile;
     const request = vi.fn().mockResolvedValue(profileEnvelope(legacyProfile));
 
     renderPage({ request });
