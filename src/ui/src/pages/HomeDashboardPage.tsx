@@ -20,6 +20,7 @@ import {
   Skeleton,
   StatusBadge,
 } from "../components/Primitives";
+import { createEmptyPalateProfileDraft } from "../features/palate-profile/palateProfile";
 
 const fitLabels: Record<Fit, string> = {
   strong: "Strong fit",
@@ -242,8 +243,13 @@ function preferenceSummary(
   profile: PalateProfile,
   kind: "preferred" | "avoided",
 ) {
+  const stylePreferences = {
+    ...createEmptyPalateProfileDraft().stylePreferences,
+    ...profile.stylePreferences,
+  };
+
   return preferenceDimensions
-    .flatMap((dimension) => profile.stylePreferences[dimension][kind])
+    .flatMap((dimension) => stylePreferences[dimension][kind])
     .map(displayPreference)
     .slice(0, 6);
 }
